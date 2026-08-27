@@ -1,0 +1,44 @@
+{
+  "dataset_summary": {
+    "test_disputes": 96,
+    "test_won_count": 82,
+    "test_lost_count": 14,
+    "test_win_rate_percent": 85.42
+  },
+  "baseline_logistic_regression": {
+    "accuracy": 0.8958,
+    "precision": 0.9186,
+    "recall": 0.9634,
+    "f1_score": 0.9405,
+    "roc_auc": 0.9303,
+    "pr_auc": 0.9866,
+    "brier_score": 0.0693
+  },
+  "primary_lightgbm_default_0.50": {
+    "accuracy": 0.8854,
+    "precision": 0.9277,
+    "recall": 0.939,
+    "f1_score": 0.9333,
+    "roc_auc": 0.885,
+    "pr_auc": 0.9746,
+    "brier_score": 0.0822
+  },
+  "primary_lightgbm_optimal_threshold": {
+    "threshold": 0.29,
+    "metrics": {
+      "accuracy": 0.9062,
+      "precision": 0.9101,
+      "recall": 0.9878,
+      "f1_score": 0.9474,
+      "roc_auc": 0.885,
+      "pr_auc": 0.9746,
+      "brier_score": 0.0822
+    }
+  },
+  "financial_cost_simulation_inr": {
+    "cost_naive_always_contest": 11344.38,
+    "cost_model_default_0.50": 10302.72,
+    "cost_model_optimal_threshold": 6661.73,
+    "cost_savings_inr": 4682.65
+  }
+}

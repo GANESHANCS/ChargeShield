@@ -1,0 +1,67 @@
+# =========================
+# ChargeShield - Git Ignore
+# =========================
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# SQLite / local databases
+*.db
+*.sqlite
+*.sqlite3
+chargeshield.db
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Frontend build output
+frontend/dist/
+frontend/.vite/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local development artifacts
+uploads/
+exports/
+tmp/
+
+# Docker local overrides
+docker-compose.override.yml
+# ChargeShield generated datasets
+data/generated/
+data/generated/

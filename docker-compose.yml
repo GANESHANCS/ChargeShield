@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: chargeshield-postgres
+    environment:
+      POSTGRES_DB: chargeshield
+      POSTGRES_USER: chargeshield_user
+      POSTGRES_PASSWORD: chargeshield_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chargeshield_user -d chargeshield"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chargeshield-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - JWT_SECRET_KEY=chargeshield-prod-jwt-secret-key-replace-in-env
+      - SECRET_KEY=chargeshield-prod-secret-key-replace-in-env
+      - DATABASE_URL=postgresql://chargeshield_user:chargeshield_secure_password@postgres:5432/chargeshield
+      - SEED_DEV_USER=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  pgdata:

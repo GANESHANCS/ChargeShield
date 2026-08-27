@@ -1,0 +1,12 @@
+{
+  "model_name": "ChargeShield ML Win-Probability Engine",
+  "model_version": "chargeshield_ml_v1",
+  "primary_algorithm": "LightGBM Classifier",
+  "baseline_algorithm": "Logistic Regression",
+  "random_seed": 42,
+  "optimal_cost_threshold": 0.29,
+  "validation_min_cost_inr": 821.12,
+  "train_samples": 283,
+  "val_samples": 94,
+  "test_samples": 96
+}

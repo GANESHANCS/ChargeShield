@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    background-color: #050607;
+    color: #ffffff;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Space Grotesk', 'Manrope', sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Minimalist Dark Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #AFDDFF;
+}
+
+/* Keyframe Animations inspired by LŪMEN */
+@keyframes lumenFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lumenFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-lumen-fade-up {
+  animation: lumenFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-lumen-fade-in {
+  animation: lumenFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle Technical Styles */
+.lumen-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0px;
+}
+
+.lumen-card-hover {
+  transition: all 0.3s cubic-bezier(0.76, 0, 0.24, 1);
+}
+.lumen-card-hover:hover {
+  border-color: rgba(175, 221, 255, 0.35);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lumen-divider {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.lumen-divider-v {
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
