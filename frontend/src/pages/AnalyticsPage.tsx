@@ -137,7 +137,7 @@ export const AnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#101722]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="analytics" />
 
       {/* Editorial Image Hero Header */}

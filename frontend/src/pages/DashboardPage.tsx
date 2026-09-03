@@ -85,7 +85,7 @@ export const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#050607]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="dashboard" />
 
       {/* LŪMEN Multi-Layer Editorial Parallax Hero */}

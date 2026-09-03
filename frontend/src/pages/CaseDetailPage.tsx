@@ -262,7 +262,7 @@ export const CaseDetailPage: React.FC = () => {
   const latestDecision: DecisionRecord | undefined = safeDecisions.length > 0 ? safeDecisions[safeDecisions.length - 1] : undefined;
 
   return (
-    <div className="relative min-h-screen bg-[#0B1017]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="case" />
 
       {/* Editorial Image Hero Header */}

@@ -5,7 +5,7 @@ import { SimulationControlPanel } from '../components/simulation/SimulationContr
 
 export const SimulationPage: React.FC = () => {
   return (
-    <div className="relative min-h-screen bg-[#050607]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="simulation" />
 
       <div className="relative z-10 px-[20px] md:px-[35px] py-10 space-y-8 max-w-[1600px] mx-auto animate-lumen-fade-up">

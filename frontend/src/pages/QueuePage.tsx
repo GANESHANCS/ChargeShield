@@ -148,7 +148,7 @@ export const QueuePage: React.FC = () => {
   const totalCount = queueResponse?.total || 0;
 
   return (
-    <div className="relative min-h-screen bg-[#080B10]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="queue" />
 
       <EditorialImageHero

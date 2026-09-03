@@ -98,7 +98,7 @@ export const ModelPage: React.FC = () => {
   const sim = rep.financial_cost_simulation_inr;
 
   return (
-    <div className="relative min-h-screen bg-[#070612]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="model" />
 
       {/* Editorial Image Hero Header */}

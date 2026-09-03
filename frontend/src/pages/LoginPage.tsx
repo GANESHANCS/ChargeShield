@@ -43,7 +43,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#05070D] text-white font-mono flex flex-col justify-between p-6 md:p-12 relative overflow-hidden select-none">
+    <div className="min-h-screen w-full bg-transparent text-white font-mono flex flex-col justify-between p-6 md:p-12 relative overflow-hidden select-none">
       <AnimatedBackground variant="login" />
       {/* Background Architectural Elements */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />

@@ -82,7 +82,7 @@ export const AuditPage: React.FC = () => {
   const totalRecords = auditData?.total || 0;
 
   return (
-    <div className="relative min-h-screen bg-[#05070D]">
+    <div className="relative min-h-screen bg-transparent">
       <AnimatedBackground variant="audit" />
 
       {/* Editorial Image Hero Header */}

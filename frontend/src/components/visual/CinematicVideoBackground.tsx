@@ -12,14 +12,13 @@ export interface CinematicVideoBackgroundProps {
 export const CinematicVideoBackground: React.FC<CinematicVideoBackgroundProps> = ({
   videoSrc,
   poster,
-  opacity = 0.22,
+  opacity = 0.25,
   blur = '0px',
-  overlayIntensity = 0.80,
+  overlayIntensity = 0.60,
   className = ''
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   // 1. Detect prefers-reduced-motion
@@ -62,82 +61,97 @@ export const CinematicVideoBackground: React.FC<CinematicVideoBackgroundProps> =
       if (!videoRef.current) return;
       if (document.hidden) {
         videoRef.current.pause();
-      } else if (!prefersReducedMotion && !isMobile) {
+      } else if (!prefersReducedMotion) {
         videoRef.current.play().catch(() => {});
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [prefersReducedMotion, isMobile]);
+  }, [prefersReducedMotion]);
 
-  // 4. Handle video play on src change
+  // 4. Race-safe playback effect: attempt play without triggering load() or play loops
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (prefersReducedMotion || isMobile) {
+    if (prefersReducedMotion) {
       video.pause();
       return;
     }
 
-    setIsVideoLoaded(false);
-    video.load();
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setIsVideoLoaded(true);
-        })
-        .catch((err) => {
-          // Autoplay policy or load error fallback
-          console.warn('CinematicVideoBackground autoplay restricted or failed:', err);
-          setIsVideoLoaded(false);
-        });
-    }
-  }, [videoSrc, prefersReducedMotion, isMobile]);
+    let isSubscribed = true;
 
-  const effectiveOpacity = isMobile ? opacity * 0.5 : opacity;
+    const playVideo = () => {
+      if (!isSubscribed || !video) return;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          // Gracefully swallow AbortError or autoplay restriction without breaking state
+          if (err.name !== 'AbortError') {
+            console.warn('CinematicVideoBackground playback info:', err.message);
+          }
+        });
+      }
+    };
+
+    if (video.readyState >= 2) {
+      playVideo();
+    } else {
+      video.addEventListener('canplay', playVideo, { once: true });
+      video.addEventListener('loadeddata', playVideo, { once: true });
+    }
+
+    // Direct initial attempt
+    playVideo();
+
+    return () => {
+      isSubscribed = false;
+      video.removeEventListener('canplay', playVideo);
+      video.removeEventListener('loadeddata', playVideo);
+    };
+  }, [videoSrc, prefersReducedMotion]);
+
+  const effectiveOpacity = isMobile ? opacity * 0.6 : opacity;
 
   return (
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#05070D] ${className}`}
+      className={`fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-transparent ${className}`}
     >
       {/* 1. Video Layer */}
       {!prefersReducedMotion && (
         <video
           ref={videoRef}
           key={videoSrc}
+          src={videoSrc}
           autoPlay
           loop
           muted
           playsInline
           poster={poster}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-out"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-out pointer-events-none"
           style={{
-            opacity: isVideoLoaded ? effectiveOpacity : 0,
+            opacity: effectiveOpacity,
             filter: blur !== '0px' ? `blur(${blur})` : 'none'
           }}
-        >
-          <source src={videoSrc} type="video/mp4" />
-        </video>
+        />
       )}
 
       {/* 2. Visual Overlay Gradients (Ensures LŪMEN dark graphite readability) */}
       <div
-        className="absolute inset-0 transition-opacity duration-500"
+        className="absolute inset-0 transition-opacity duration-500 pointer-events-none"
         style={{
           background: `
-            radial-gradient(circle at 50% 30%, rgba(5, 7, 13, ${overlayIntensity * 0.5}) 0%, rgba(5, 7, 13, ${overlayIntensity}) 100%),
-            linear-gradient(to bottom, rgba(5, 7, 13, ${overlayIntensity * 0.9}) 0%, rgba(5, 7, 13, ${overlayIntensity * 0.6}) 50%, rgba(5, 7, 13, ${overlayIntensity * 0.95}) 100%)
+            radial-gradient(circle at 50% 30%, rgba(5, 7, 13, ${overlayIntensity * 0.3}) 0%, rgba(5, 7, 13, ${overlayIntensity * 0.6}) 100%),
+            linear-gradient(to bottom, rgba(5, 7, 13, ${overlayIntensity * 0.5}) 0%, rgba(5, 7, 13, ${overlayIntensity * 0.3}) 50%, rgba(5, 7, 13, ${overlayIntensity * 0.65}) 100%)
           `
         }}
       />
 
       {/* 3. Subtle LŪMEN Grid Architectural Accent */}
       <div
-        className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:6rem_6rem] opacity-40 pointer-events-none"
+        className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:6rem_6rem] opacity-30 pointer-events-none"
       />
     </div>
   );

@@ -25,90 +25,90 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ variant 
     hero: {
       bg: '#05070D',
       videoSrc: '/videos/risk-overview.mp4',
-      opacity: 0.25,
+      opacity: 0.40,
       blur: '0px',
-      overlayIntensity: 0.75,
+      overlayIntensity: 0.55,
       primaryGlow: 'rgba(175, 221, 255, 0.12)',
       secondaryGlow: 'rgba(157, 140, 255, 0.08)'
     },
     dashboard: {
       bg: '#05070D',
       videoSrc: '/videos/risk-overview.mp4',
-      opacity: 0.25,
+      opacity: 0.40,
       blur: '0px',
-      overlayIntensity: 0.75,
+      overlayIntensity: 0.55,
       primaryGlow: 'rgba(114, 223, 255, 0.14)',
       secondaryGlow: 'rgba(118, 224, 194, 0.08)'
     },
     queue: {
       bg: '#030A13',
       videoSrc: '/videos/review-queue.mp4',
-      opacity: 0.18,
-      blur: '1px',
-      overlayIntensity: 0.85,
+      opacity: 0.35,
+      blur: '0px',
+      overlayIntensity: 0.60,
       primaryGlow: 'rgba(175, 221, 255, 0.10)',
       secondaryGlow: 'rgba(114, 223, 255, 0.10)'
     },
     case: {
       bg: '#02050A',
       videoSrc: '/videos/case-investigation.mp4',
-      opacity: 0.22,
+      opacity: 0.38,
       blur: '0px',
-      overlayIntensity: 0.80,
+      overlayIntensity: 0.55,
       primaryGlow: 'rgba(157, 140, 255, 0.12)',
       secondaryGlow: 'rgba(175, 221, 255, 0.10)'
     },
     model: {
       bg: '#070612',
       videoSrc: '/videos/model-intelligence.mp4',
-      opacity: 0.25,
+      opacity: 0.42,
       blur: '0px',
-      overlayIntensity: 0.78,
+      overlayIntensity: 0.50,
       primaryGlow: 'rgba(157, 140, 255, 0.16)',
       secondaryGlow: 'rgba(114, 223, 255, 0.08)'
     },
     analytics: {
       bg: '#06100F',
       videoSrc: '/videos/analytics.mp4',
-      opacity: 0.20,
-      blur: '1px',
-      overlayIntensity: 0.82,
+      opacity: 0.38,
+      blur: '0px',
+      overlayIntensity: 0.58,
       primaryGlow: 'rgba(118, 224, 194, 0.14)',
       secondaryGlow: 'rgba(157, 140, 255, 0.12)'
     },
     simulation: {
       bg: '#05070D',
       videoSrc: '/videos/simulation.mp4',
-      opacity: 0.30,
+      opacity: 0.45,
       blur: '0px',
-      overlayIntensity: 0.70,
+      overlayIntensity: 0.50,
       primaryGlow: 'rgba(244, 196, 107, 0.14)',
       secondaryGlow: 'rgba(175, 221, 255, 0.10)'
     },
     audit: {
       bg: '#05070D',
       videoSrc: '/videos/audit.mp4',
-      opacity: 0.15,
-      blur: '1px',
-      overlayIntensity: 0.88,
+      opacity: 0.32,
+      blur: '0px',
+      overlayIntensity: 0.65,
       primaryGlow: 'rgba(175, 221, 255, 0.10)',
       secondaryGlow: 'rgba(118, 224, 194, 0.08)'
     },
     login: {
       bg: '#05070D',
       videoSrc: '/videos/login.mp4',
-      opacity: 0.22,
-      blur: '1px',
-      overlayIntensity: 0.85,
+      opacity: 0.40,
+      blur: '0px',
+      overlayIntensity: 0.55,
       primaryGlow: 'rgba(175, 221, 255, 0.10)',
       secondaryGlow: 'rgba(157, 140, 255, 0.08)'
     }
   }[variant] || {
     bg: '#05070D',
     videoSrc: '/videos/risk-overview.mp4',
-    opacity: 0.25,
+    opacity: 0.40,
     blur: '0px',
-    overlayIntensity: 0.75,
+    overlayIntensity: 0.55,
     primaryGlow: 'rgba(175, 221, 255, 0.12)',
     secondaryGlow: 'rgba(157, 140, 255, 0.08)'
   };
