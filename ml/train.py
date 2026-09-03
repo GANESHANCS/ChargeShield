@@ -11,7 +11,7 @@ import json
 import joblib
 import numpy as np
 import pandas as pd
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, List
 from sklearn.linear_model import LogisticRegression
 from lightgbm import LGBMClassifier
 
