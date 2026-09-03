@@ -81,7 +81,7 @@ def test_case_creation():
 def test_queue_visibility():
     res = simulation_engine.generate_transaction("REPEAT_DISPUTE_CUSTOMER")
     disp_id = res["dispute_id"]
-    cases_resp = case_service.list_cases(page=1, page_size=100)
+    cases_resp = case_service.list_cases(page=1, page_size=100, data_state="SIMULATION")
     disp_ids = [c["dispute_id"] for c in cases_resp["items"]]
     assert disp_id in disp_ids
 

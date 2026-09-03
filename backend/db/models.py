@@ -2,7 +2,8 @@
 SQLAlchemy ORM models for ChargeShield persistent review workflow and decision audit log.
 """
 
-from sqlalchemy import Column, String, Float, Index
+from sqlalchemy import Column, String, Float, Integer, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from backend.db.database import Base
 
 class ReviewStateModel(Base):
@@ -156,4 +157,166 @@ class ThresholdAuditModel(Base):
 
     def __repr__(self):
         return f"<ThresholdAuditModel(audit_id='{self.audit_id}', approved_threshold={self.approved_threshold})>"
+
+
+class CustomerModel(Base):
+    """Stores customer profile, historical order stats, and risk tiering."""
+    __tablename__ = "customers"
+
+    customer_id = Column(String(64), primary_key=True, index=True)
+    account_creation_date = Column(String(64), nullable=True)
+    tenure_days = Column(Float, nullable=True)
+    country = Column(String(32), nullable=True)
+    total_order_count = Column(Float, nullable=True, default=0.0)
+    successful_order_count = Column(Float, nullable=True, default=0.0)
+    previous_dispute_count = Column(Float, nullable=True, default=0.0)
+    previous_chargeback_count = Column(Float, nullable=True, default=0.0)
+    refund_count = Column(Float, nullable=True, default=0.0)
+    account_status = Column(String(32), nullable=True, default="ACTIVE")
+    customer_segment = Column(String(32), nullable=True)
+    data_state = Column(String(32), nullable=False, default="PRODUCTION", index=True)
+    created_at = Column(String(64), nullable=False)
+    updated_at = Column(String(64), nullable=False)
+
+    orders = relationship("OrderModel", back_populates="customer", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<CustomerModel(id='{self.customer_id}', segment='{self.customer_segment}')>"
+
+
+class OrderModel(Base):
+    """Stores e-commerce order details linked to customer."""
+    __tablename__ = "orders"
+
+    order_id = Column(String(64), primary_key=True, index=True)
+    customer_id = Column(String(64), ForeignKey("customers.customer_id"), nullable=False, index=True)
+    product_category = Column(String(64), nullable=True)
+    order_amount = Column(Float, nullable=False, default=0.0)
+    currency = Column(String(16), nullable=False, default="INR")
+    fulfillment_status = Column(String(32), nullable=True)
+    cancellation_status = Column(String(32), nullable=True)
+    order_timestamp = Column(String(64), nullable=True)
+    data_state = Column(String(32), nullable=False, default="PRODUCTION", index=True)
+    created_at = Column(String(64), nullable=False)
+    updated_at = Column(String(64), nullable=False)
+
+    customer = relationship("CustomerModel", back_populates="orders")
+    transactions = relationship("TransactionModel", back_populates="order", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<OrderModel(id='{self.order_id}', amount={self.order_amount})>"
+
+
+class TransactionModel(Base):
+    """Stores payment transaction details linked to order."""
+    __tablename__ = "transactions"
+
+    transaction_id = Column(String(64), primary_key=True, index=True)
+    order_id = Column(String(64), ForeignKey("orders.order_id"), nullable=False, index=True)
+    payment_method = Column(String(64), nullable=True)
+    payment_gateway = Column(String(64), nullable=True)
+    transaction_status = Column(String(32), nullable=True)
+    payment_success = Column(Float, nullable=True, default=1.0)
+    auth_risk_score = Column(Float, nullable=True)
+    velocity_24h = Column(Float, nullable=True)
+    transaction_timestamp = Column(String(64), nullable=True)
+    amount = Column(Float, nullable=True)
+    data_state = Column(String(32), nullable=False, default="PRODUCTION", index=True)
+    created_at = Column(String(64), nullable=False)
+    updated_at = Column(String(64), nullable=False)
+
+    order = relationship("OrderModel", back_populates="transactions")
+    disputes = relationship("DisputeModel", back_populates="transaction", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<TransactionModel(id='{self.transaction_id}', gateway='{self.payment_gateway}')>"
+
+
+class DisputeModel(Base):
+    """Authoritative relational dispute/case table."""
+    __tablename__ = "disputes"
+    __table_args__ = (
+        Index("ix_disputes_state_status", "data_state", "dispute_status"),
+        Index("ix_disputes_status_created", "dispute_status", "created_at"),
+        Index("ix_disputes_state_created", "data_state", "created_at"),
+    )
+
+    dispute_id = Column(String(64), primary_key=True, index=True)
+    transaction_id = Column(String(64), ForeignKey("transactions.transaction_id"), nullable=False, index=True)
+    order_id = Column(String(64), ForeignKey("orders.order_id"), nullable=False, index=True)
+    customer_id = Column(String(64), ForeignKey("customers.customer_id"), nullable=False, index=True)
+    disputed_amount = Column(Float, nullable=False)
+    currency = Column(String(16), nullable=False, default="INR")
+    dispute_reason_code = Column(String(64), nullable=False)
+    dispute_category = Column(String(64), nullable=True)
+    dispute_status = Column(String(32), nullable=False, default="PENDING_REVIEW", index=True)
+    dispute_stage = Column(String(32), nullable=True)
+    dispute_creation_timestamp = Column(String(64), nullable=True)
+    response_deadline = Column(String(64), nullable=True)
+    evidence_deadline = Column(String(64), nullable=True)
+    contest_success = Column(Float, nullable=True)
+    final_outcome = Column(String(32), nullable=True)
+    settlement_date = Column(String(64), nullable=True)
+    data_state = Column(String(32), nullable=False, default="PRODUCTION", index=True)
+    created_at = Column(String(64), nullable=False, index=True)
+    updated_at = Column(String(64), nullable=False)
+
+    transaction = relationship("TransactionModel", back_populates="disputes")
+    order = relationship("OrderModel", foreign_keys=[order_id])
+    customer = relationship("CustomerModel", foreign_keys=[customer_id])
+
+    def __repr__(self):
+        return f"<DisputeModel(id='{self.dispute_id}', status='{self.dispute_status}')>"
+
+
+class WebhookEventModel(Base):
+    """Audit and idempotency log for payment gateway webhook events."""
+    __tablename__ = "webhook_events"
+    __table_args__ = (
+        Index("ix_webhooks_dispute_state", "dispute_id", "data_state"),
+        Index("ix_webhooks_event_received", "event_id", "received_timestamp"),
+    )
+
+    event_id = Column(String(128), primary_key=True, index=True)
+    event_type = Column(String(64), nullable=False)
+    dispute_id = Column(String(64), nullable=True, index=True)
+    correlation_id = Column(String(64), nullable=True)
+    data_state = Column(String(32), nullable=False, default="PRODUCTION", index=True)
+    processing_status = Column(String(32), nullable=False, index=True)  # PROCESSED, DUPLICATE, REJECTED
+    payload_hash = Column(String(64), nullable=False)  # SHA-256 hash of payload body
+    failure_reason = Column(String(1024), nullable=True)
+    received_timestamp = Column(String(64), nullable=False, index=True)
+
+    def __repr__(self):
+        return f"<WebhookEventModel(event_id='{self.event_id}', status='{self.processing_status}')>"
+
+
+class EvidenceDocumentModel(Base):
+    """Metadata repository for dispute evidence documents."""
+    __tablename__ = "evidence_documents"
+    __table_args__ = (
+        Index("ix_evidence_dispute_state", "dispute_id", "data_state"),
+        Index("ix_evidence_dispute_status", "dispute_id", "status"),
+        Index("ix_evidence_hash", "sha256_hash"),
+    )
+
+    evidence_id = Column(String(64), primary_key=True, index=True)
+    dispute_id = Column(String(64), ForeignKey("disputes.dispute_id"), nullable=False, index=True)
+    original_filename = Column(String(255), nullable=False)
+    safe_filename = Column(String(255), nullable=False)
+    content_type = Column(String(128), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    sha256_hash = Column(String(64), nullable=False, index=True)
+    storage_key = Column(String(512), nullable=False)
+    uploaded_by = Column(String(128), nullable=False)
+    uploaded_at = Column(String(64), nullable=False)
+    data_state = Column(String(32), nullable=False, default="PRODUCTION", index=True)
+    status = Column(String(32), nullable=False, default="ACTIVE", index=True)
+    created_at = Column(String(64), nullable=False)
+    updated_at = Column(String(64), nullable=False)
+
+    dispute = relationship("DisputeModel", foreign_keys=[dispute_id])
+
+    def __repr__(self):
+        return f"<EvidenceDocumentModel(id='{self.evidence_id}', filename='{self.original_filename}', status='{self.status}')>"
 

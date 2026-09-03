@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     MAX_UPLOAD_SIZE_BYTES: int = 10485760  # 10 MB
     
+    # Webhook Authentication & Replay Protection
+    WEBHOOK_SECRET: str = os.getenv("CHARGESHIELD_WEBHOOK_SECRET", "chargeshield-webhook-secret-dev-key")
+    WEBHOOK_MAX_CLOCK_SKEW_SECONDS: int = 300
+
+    # Evidence Document Storage Configuration
+    EVIDENCE_STORAGE_PATH: str = "storage/evidence"
+    EVIDENCE_MAX_FILE_SIZE_MB: int = 10
+
     DATABASE_URL: str = "sqlite:///./chargeshield.db"
     
     ALLOWED_ORIGINS: List[str] = [

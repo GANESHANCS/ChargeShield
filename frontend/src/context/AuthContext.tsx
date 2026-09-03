@@ -53,20 +53,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     const apiBaseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-    const res = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || errData.error || 'Authentication failed. Invalid credentials.');
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const message = errData.detail || errData.error || 'Authentication failed. Invalid credentials.';
+        throw new Error(typeof message === 'string' ? message : 'Authentication failed.');
+      }
+
+      const data = await res.json();
+      setToken(data.access_token);
+      setUser(data.user);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Authentication server timeout. Please check backend connection.');
+      }
+      if (err.message === 'Failed to fetch' || err.message?.includes('fetch')) {
+        throw new Error('Unable to connect to authentication server. Please check connection.');
+      }
+      throw err;
     }
-
-    const data = await res.json();
-    setToken(data.access_token);
-    setUser(data.user);
   };
 
   const logout = () => {

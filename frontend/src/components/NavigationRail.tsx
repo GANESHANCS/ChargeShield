@@ -44,6 +44,7 @@ export const NavigationRail: React.FC = () => {
     { label: '04 MODEL', path: '/model' },
     { label: '05 ANALYTICS', path: '/analytics' },
     { label: '06 AUDIT', path: '/audit' },
+    { label: '07 SIMULATION', path: '/simulation' },
   ];
 
   const handleNavClick = (path: string) => {

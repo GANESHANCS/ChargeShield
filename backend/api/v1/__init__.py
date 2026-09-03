@@ -13,12 +13,16 @@ from backend.api.v1.case_workflow import router as case_workflow_router
 from backend.api.v1.auth import router as auth_router, users_router
 from backend.api.v1.export import router as export_router
 from backend.api.v1.jobs import router as jobs_router
+from backend.api.v1.webhooks import router as webhooks_router
+from backend.api.v1.evidence import router as evidence_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(users_router)
 api_v1_router.include_router(export_router)
 api_v1_router.include_router(jobs_router)
+api_v1_router.include_router(webhooks_router)
+api_v1_router.include_router(evidence_router)
 api_v1_router.include_router(cases_router)
 api_v1_router.include_router(review_router)
 api_v1_router.include_router(model_router)

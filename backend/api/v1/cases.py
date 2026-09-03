@@ -4,8 +4,13 @@ Exposes endpoints for listing cases, viewing case detail, predicting win probabi
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, Depends, status
+from sqlalchemy.orm import Session
 
+from backend.db.database import get_db
+from backend.db.models import UserModel
+from backend.api.dependencies import require_role
+from backend.services.representment_pdf_service import representment_pdf_service
 from backend.schemas.cases import CaseListResponse, CaseDetailResponse
 from backend.schemas.predictions import PredictionResponse, ExplanationResponse
 from backend.agent.schemas import InvestigationReport
@@ -26,7 +31,8 @@ async def list_cases(
     min_prob: Optional[float] = Query(None, ge=0.0, le=1.0, description="Minimum win probability"),
     max_prob: Optional[float] = Query(None, ge=0.0, le=1.0, description="Maximum win probability"),
     sort_by: Optional[str] = Query("newest", description="Sort order: newest, oldest, amount_desc, amount_asc, prob_desc, prob_asc"),
-    search: Optional[str] = Query(None, description="Global search query across dispute ID, transaction ID, customer ID, or reason code")
+    search: Optional[str] = Query(None, description="Global search query across dispute ID, transaction ID, customer ID, or reason code"),
+    data_state: Optional[str] = Query("PRODUCTION", description="Data state filter (e.g. PRODUCTION, SIMULATION, HISTORICAL)")
 ):
     """
     Retrieves a paginated list of risk cases with configurable filtering, global search, and sorting.
@@ -39,7 +45,8 @@ async def list_cases(
         min_prob=min_prob,
         max_prob=max_prob,
         sort_by=sort_by,
-        search=search
+        search=search,
+        data_state=data_state or "PRODUCTION"
     )
     return res
 
@@ -184,6 +191,43 @@ async def get_case_timeline(dispute_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate case investigation timeline: {str(e)}"
         )
+
+
+@router.get("/{dispute_id}/representment-package", summary="Export Representment Evidence Package PDF")
+async def get_representment_package(
+    dispute_id: str,
+    current_user: UserModel = Depends(require_role(["ADMIN", "REVIEWER"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Generates and returns an audit-ready Representment Evidence Package PDF for the specified dispute case.
+    Requires authentication and RBAC claims (ADMIN, REVIEWER, ANALYST, or AUDITOR).
+    """
+    detail = case_service.get_case_detail(dispute_id)
+    if not detail:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Chargeback dispute case '{dispute_id}' not found."
+        )
+
+    try:
+        pdf_bytes = representment_pdf_service.generate_pdf(dispute_id, db)
+        safe_filename = f"chargeshield_representment_{dispute_id}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_filename}"',
+                "X-ChargeShield-Dispute-ID": dispute_id,
+                "X-ChargeShield-Data-State": detail.get("dispute", {}).get("data_state", "PRODUCTION")
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate representment package PDF: {str(e)}"
+        )
+
 
 
 

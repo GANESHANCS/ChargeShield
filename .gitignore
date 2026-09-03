@@ -65,3 +65,6 @@ docker-compose.override.yml
 # ChargeShield generated datasets
 data/generated/
 data/generated/
+
+# Runtime evidence storage
+storage/

@@ -827,9 +827,24 @@ export interface LearningMetricsResponse {
     governance: {
       no_autonomous_training: boolean;
       simulation_exclusion: boolean;
-      data_provenance: string;
     };
   };
   data_provenance: string;
+}
+
+export interface EvidenceDocument {
+  evidence_id: string;
+  dispute_id: string;
+  original_filename: string;
+  safe_filename: string;
+  content_type: string;
+  file_size: number;
+  sha256_hash: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  data_state: 'PRODUCTION' | 'SIMULATION';
+  status: 'ACTIVE' | 'REVOKED';
+  created_at: string;
+  updated_at: string;
 }
 

@@ -196,6 +196,115 @@ class DataIngestionService:
 
         report = staged["report"]
         batch_hash = staged["contents_hash"]
+        staged_rows = staged.get("staged_rows", [])
+        data_state = report.get("data_provenance", "PRODUCTION")
+
+        # Atomic DB Persistence into Relational Entities
+        from backend.db.database import get_db_session
+        from backend.db.models import CustomerModel, OrderModel, TransactionModel, DisputeModel
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        try:
+            with get_db_session() as session:
+                for row in staged_rows:
+                    cust_id = str(row.get("customer_id", "")).strip()
+                    ord_id = str(row.get("order_id", "")).strip()
+                    txn_id = str(row.get("transaction_id", "")).strip()
+                    disp_id = str(row.get("dispute_id", "")).strip()
+
+                    if not (cust_id and ord_id and txn_id and disp_id):
+                        continue
+
+                    # 1. Upsert Customer
+                    cust_obj = session.query(CustomerModel).filter_by(customer_id=cust_id).first()
+                    if not cust_obj:
+                        cust_obj = CustomerModel(
+                            customer_id=cust_id,
+                            account_creation_date=str(row.get("account_creation_date")) if row.get("account_creation_date") else None,
+                            tenure_days=float(row["tenure_days"]) if row.get("tenure_days") is not None and str(row.get("tenure_days")).strip() != "" else None,
+                            country=str(row.get("country")) if row.get("country") else None,
+                            total_order_count=float(row["total_order_count"]) if row.get("total_order_count") is not None and str(row.get("total_order_count")).strip() != "" else 0.0,
+                            successful_order_count=float(row["successful_order_count"]) if row.get("successful_order_count") is not None and str(row.get("successful_order_count")).strip() != "" else 0.0,
+                            previous_dispute_count=float(row["previous_dispute_count"]) if row.get("previous_dispute_count") is not None and str(row.get("previous_dispute_count")).strip() != "" else 0.0,
+                            previous_chargeback_count=float(row["previous_chargeback_count"]) if row.get("previous_chargeback_count") is not None and str(row.get("previous_chargeback_count")).strip() != "" else 0.0,
+                            refund_count=float(row["refund_count"]) if row.get("refund_count") is not None and str(row.get("refund_count")).strip() != "" else 0.0,
+                            account_status=str(row.get("account_status", "ACTIVE")),
+                            customer_segment=str(row.get("customer_segment")) if row.get("customer_segment") else None,
+                            data_state=data_state,
+                            created_at=now_iso,
+                            updated_at=now_iso,
+                        )
+                        session.add(cust_obj)
+
+                    # 2. Upsert Order
+                    ord_obj = session.query(OrderModel).filter_by(order_id=ord_id).first()
+                    if not ord_obj:
+                        ord_obj = OrderModel(
+                            order_id=ord_id,
+                            customer_id=cust_id,
+                            product_category=str(row.get("product_category")) if row.get("product_category") else None,
+                            order_amount=float(row.get("disputed_amount", 0.0)),
+                            currency=str(row.get("currency", "INR")),
+                            fulfillment_status=str(row.get("fulfillment_status")) if row.get("fulfillment_status") else None,
+                            cancellation_status=str(row.get("cancellation_status")) if row.get("cancellation_status") else None,
+                            order_timestamp=str(row.get("order_timestamp")) if row.get("order_timestamp") else None,
+                            data_state=data_state,
+                            created_at=now_iso,
+                            updated_at=now_iso,
+                        )
+                        session.add(ord_obj)
+
+                    # 3. Upsert Transaction
+                    txn_obj = session.query(TransactionModel).filter_by(transaction_id=txn_id).first()
+                    if not txn_obj:
+                        txn_obj = TransactionModel(
+                            transaction_id=txn_id,
+                            order_id=ord_id,
+                            payment_method=str(row.get("payment_method")) if row.get("payment_method") else None,
+                            payment_gateway=str(row.get("payment_gateway")) if row.get("payment_gateway") else None,
+                            transaction_status=str(row.get("transaction_status")) if row.get("transaction_status") else None,
+                            payment_success=float(row["payment_success"]) if row.get("payment_success") is not None and str(row.get("payment_success")).strip() != "" else 1.0,
+                            auth_risk_score=float(row["auth_risk_score"]) if row.get("auth_risk_score") is not None and str(row.get("auth_risk_score")).strip() != "" else None,
+                            velocity_24h=float(row["velocity_24h"]) if row.get("velocity_24h") is not None and str(row.get("velocity_24h")).strip() != "" else None,
+                            transaction_timestamp=str(row.get("transaction_timestamp")) if row.get("transaction_timestamp") else None,
+                            amount=float(row.get("disputed_amount", 0.0)),
+                            data_state=data_state,
+                            created_at=now_iso,
+                            updated_at=now_iso,
+                        )
+                        session.add(txn_obj)
+
+                    # 4. Upsert Dispute
+                    disp_obj = session.query(DisputeModel).filter_by(dispute_id=disp_id).first()
+                    if not disp_obj:
+                        disp_obj = DisputeModel(
+                            dispute_id=disp_id,
+                            transaction_id=txn_id,
+                            order_id=ord_id,
+                            customer_id=cust_id,
+                            disputed_amount=float(row.get("disputed_amount", 0.0)),
+                            currency=str(row.get("currency", "INR")),
+                            dispute_reason_code=str(row.get("dispute_reason_code", "")),
+                            dispute_category=str(row.get("dispute_category")) if row.get("dispute_category") else None,
+                            dispute_status=str(row.get("dispute_status", "PENDING_REVIEW")),
+                            dispute_stage=str(row.get("dispute_stage")) if row.get("dispute_stage") else None,
+                            dispute_creation_timestamp=str(row.get("dispute_creation_timestamp")) if row.get("dispute_creation_timestamp") else None,
+                            response_deadline=str(row.get("response_deadline")) if row.get("response_deadline") else None,
+                            evidence_deadline=str(row.get("evidence_deadline")) if row.get("evidence_deadline") else None,
+                            contest_success=float(row["contest_success"]) if row.get("contest_success") is not None and str(row.get("contest_success")).strip() != "" else None,
+                            final_outcome=str(row.get("final_outcome")) if row.get("final_outcome") else None,
+                            settlement_date=str(row.get("settlement_date")) if row.get("settlement_date") else None,
+                            data_state=data_state,
+                            created_at=now_iso,
+                            updated_at=now_iso,
+                        )
+                        session.add(disp_obj)
+
+                session.commit()
+        except Exception as e:
+            logger.error(f"Error persisting batch '{batch_id}' to database: {str(e)}")
+            raise e
 
         # Record committed batch for idempotency protection
         self._processed_batches[batch_hash] = {

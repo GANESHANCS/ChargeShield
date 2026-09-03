@@ -30,7 +30,8 @@ import {
   CaseActivityItem,
   SLAInfo,
   EvidenceConfidenceInfo,
-  OutcomeOverview
+  OutcomeOverview,
+  EvidenceDocument
 } from '../types';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -413,5 +414,65 @@ export const api = {
   getContinuousLearning: async (timeframe: string = '30D') => {
     const res = await authFetch(`${API_BASE_URL}/api/v1/model/learning?timeframe=${timeframe}`);
     return handleResponse<any>(res);
+  },
+
+  // Evidence Management API methods
+  uploadEvidence: async (disputeId: string, file: File): Promise<EvidenceDocument> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    const token = localStorage.getItem('chargeshield_auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(disputeId)}/evidence-upload`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    return handleResponse<EvidenceDocument>(res);
+  },
+
+  getEvidenceList: async (disputeId: string): Promise<EvidenceDocument[]> => {
+    const res = await authFetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(disputeId)}/evidence`);
+    const data = await handleResponse<{ dispute_id: string; evidence_documents: EvidenceDocument[] }>(res);
+    return data.evidence_documents || [];
+  },
+
+  downloadEvidenceBlob: async (disputeId: string, evidenceId: string): Promise<{ blob: Blob; filename: string }> => {
+    const res = await authFetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(disputeId)}/evidence/${encodeURIComponent(evidenceId)}`);
+    if (!res.ok) {
+      throw new Error(`Failed to download evidence document ${evidenceId}`);
+    }
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition') || '';
+    let filename = `evidence_${evidenceId}`;
+    const match = contentDisposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+    return { blob, filename };
+  },
+
+  revokeEvidence: async (disputeId: string, evidenceId: string): Promise<EvidenceDocument> => {
+    const res = await authFetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(disputeId)}/evidence/${encodeURIComponent(evidenceId)}`, {
+      method: 'DELETE'
+    });
+    return handleResponse<EvidenceDocument>(res);
+  },
+
+  exportRepresentmentPackage: async (disputeId: string): Promise<{ blob: Blob; filename: string }> => {
+    const res = await authFetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(disputeId)}/representment-package`);
+    if (!res.ok) {
+      await handleResponse<never>(res);
+    }
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition') || '';
+    let filename = `chargeshield_representment_${disputeId}.pdf`;
+    const match = contentDisposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+    return { blob, filename };
   }
 };

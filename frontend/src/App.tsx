@@ -13,6 +13,7 @@ import { CaseDetailPage } from './pages/CaseDetailPage';
 import { ModelPage } from './pages/ModelPage';
 import { AuditPage } from './pages/AuditPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { SimulationPage } from './pages/SimulationPage';
 import { api } from './services/api';
 
 function AppContent() {
@@ -20,6 +21,13 @@ function AppContent() {
   const [, setBackendOnline] = useState<boolean>(true);
 
   useEffect(() => {
+    window.onerror = (message, _source, _lineno, _colno, error) => {
+      console.error('CRITICAL_DOM_ERROR:', message, error?.stack || error);
+    };
+    window.onunhandledrejection = (event) => {
+      console.error('UNHANDLED_REJECTION:', event.reason?.stack || event.reason);
+    };
+
     async function checkBackend() {
       try {
         await api.getHealth();
@@ -104,6 +112,14 @@ function AppContent() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ANALYST', 'REVIEWER', 'AUDITOR']}>
                   <AuditPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/simulation"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ANALYST', 'REVIEWER', 'AUDITOR']}>
+                  <SimulationPage />
                 </ProtectedRoute>
               }
             />

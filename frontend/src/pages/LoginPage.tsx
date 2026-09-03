@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import { AnimatedBackground } from '../components/visual/AnimatedBackground';
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -25,22 +26,25 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(username, password);
+      await login(username.trim(), password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please check your credentials.');
+      const msg = err?.message || 'Authentication failed. Please check your credentials.';
+      setError(typeof msg === 'string' ? msg : 'Authentication failed. Invalid credentials.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleQuickFill = (roleUsername: string) => {
+    setError(null);
     setUsername(roleUsername);
     setPassword('AdminPass123!');
   };
 
   return (
     <div className="min-h-screen w-full bg-[#05070D] text-white font-mono flex flex-col justify-between p-6 md:p-12 relative overflow-hidden select-none">
+      <AnimatedBackground variant="login" />
       {/* Background Architectural Elements */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#AFDDFF]/5 blur-[120px] rounded-full pointer-events-none" />

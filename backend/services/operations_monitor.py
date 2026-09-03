@@ -69,7 +69,16 @@ class OperationsMonitorService:
             total_decisions = len(decisions)
 
             for d in decisions:
-                if d.created_at and d.created_at.date() == today_date:
+                c_date = None
+                if isinstance(d.created_at, datetime):
+                    c_date = d.created_at.date()
+                elif isinstance(d.created_at, str):
+                    try:
+                        c_date = datetime.fromisoformat(d.created_at.replace("Z", "+00:00")).date()
+                    except Exception:
+                        pass
+
+                if c_date and c_date == today_date:
                     decisions_today += 1
 
                 if d.decision == "CONTEST":

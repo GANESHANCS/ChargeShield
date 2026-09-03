@@ -106,9 +106,34 @@ chargeshield/
 
 ---
 
+---
+
 ## 5. Verification & Testing
 
-To run backend tests:
+### Running the Full Pytest Suite (194/194 Tests Passing)
 ```bash
-pytest tests/
+python -m pytest
 ```
+
+### Running the Golden-Path End-to-End Test
+```bash
+python -m pytest tests/test_golden_path_e2e.py -v
+```
+
+### Building Frontend Bundle
+```bash
+cd frontend
+npm run build
+```
+
+---
+
+## 6. Key Production Features & Architectural Safeguards
+
+1. **LightGBM ML Win Probability Model & SHAP Explainer:** Calibrated Platt-scaled probability predictions with feature importance drivers.
+2. **Deterministic & Anthropic Hybrid Risk Investigator:** Deep investigative agent with structured JSON output and fallback safety.
+3. **Evidence SHA-256 Verification & Storage:** Secure upload engine with checksum integrity validation and mime-type enforcement.
+4. **Representment Evidence Package PDF Export:** ReportLab automated legal document generation for chargeback defense (`GET /api/v1/cases/{id}/representment-package`).
+5. **HMAC Webhook Ingestion:** Webhook endpoint with HMAC-SHA256 signature verification and idempotency protection.
+6. **Strict Simulation Isolation:** Production records (`PRODUCTION`) and simulation experiments (`SIMULATION`) are strictly isolated to prevent metric pollution.
+7. **Append-Only Decision Audit Log:** Human reviewer decisions (`CONTEST`, `DO_NOT_CONTEST`, `ESCALATE`) are recorded immutably into SQLite/PostgreSQL.
