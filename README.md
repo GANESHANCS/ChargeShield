@@ -21,7 +21,15 @@ ChargeShield is an end-to-end chargeback triage, ML-driven risk evaluation, and 
 
 ---
 
-## 2. Safety & Data Governance Disclaimer
+## 2. Platform Introduction
+
+![ChargeShield Platform Introduction](docs/screenshots/00-platform-introduction.png)
+
+*Platform Introduction — ChargeShield's decision-intelligence workflow across risk, investigation, evidence, and outcomes.*
+
+---
+
+## 3. Safety & Data Governance Disclaimer
 
 > [!IMPORTANT]
 > **SYNTHETIC DATASET & HUMAN-IN-THE-LOOP AUTHORIZATION GOVERNANCE:**  
@@ -31,7 +39,7 @@ ChargeShield is an end-to-end chargeback triage, ML-driven risk evaluation, and 
 
 ---
 
-## 3. The Core Problem
+## 4. The Core Problem
 
 When digital merchants receive chargebacks from card networks, payment operations teams face a critical operational dilemma:
 
@@ -41,7 +49,7 @@ Contesting every chargeback blindly leads to negative net recovery due to non-re
 
 ---
 
-## 4. How ChargeShield Works
+## 5. How ChargeShield Works
 
 ChargeShield processes disputes through a deterministic state machine:
 
@@ -75,7 +83,7 @@ ChargeShield processes disputes through a deterministic state machine:
 
 ---
 
-## 5. System Architecture
+## 6. System Architecture
 
 ChargeShield is architected as a modular, decoupled full-stack platform:
 
@@ -125,7 +133,7 @@ graph TD
 
 ---
 
-## 6. Core Capabilities
+## 7. Core Capabilities
 
 - **Risk Intelligence & Triage**: Computes net contest value by weighing win probability against non-refundable filing fees and operational overhead.
 - **Operational Review Queue**: Real-time triage stream ordered by LightGBM priority scores, SLA deadlines, and disputed amounts.
@@ -140,7 +148,7 @@ graph TD
 
 ---
 
-## 7. Platform Interface Walkthrough
+## 8. Platform Interface Walkthrough
 
 ### Case Investigation
 ![Case Investigation](docs/screenshots/02-case-investigation.png)
@@ -160,7 +168,7 @@ graph TD
 
 ---
 
-## 8. Human-in-the-Loop & Role-Based Access Control (RBAC)
+## 9. Human-in-the-Loop & Role-Based Access Control (RBAC)
 
 ChargeShield enforces strict server-side permission boundaries using FastAPI dependency injection (`require_role`):
 
@@ -173,7 +181,7 @@ ChargeShield enforces strict server-side permission boundaries using FastAPI dep
 
 ---
 
-## 9. Machine Learning & Decision Science
+## 10. Machine Learning & Decision Science
 
 ### Win-Probability Model (LightGBM)
 - **Classifier Architecture**: Gradient boosted decision tree (`LightGBMClassifier`) trained on tabular transaction, customer behavioral, and velocity features.
@@ -190,7 +198,7 @@ ChargeShield enforces strict server-side permission boundaries using FastAPI dep
 
 ---
 
-## 10. Case Investigation Workflow
+## 11. Case Investigation Workflow
 
 1. **Dispute Ingestion**: Webhooks or batch jobs ingest dispute records, populating relational Customer, Order, Transaction, and Dispute models.
 2. **Predictive Scoring**: LightGBM model calculates win probability and determines advisory recommendation (`CONTEST` vs `DO_NOT_CONTEST`).
@@ -201,7 +209,7 @@ ChargeShield enforces strict server-side permission boundaries using FastAPI dep
 
 ---
 
-## 11. Evidence Management & Representment Package
+## 12. Evidence Management & Representment Package
 
 ### SHA-256 Storage Repository
 Physical evidence documents uploaded through the UI undergo:
@@ -220,7 +228,7 @@ Using ReportLab, ChargeShield generates downloadable evidence packages (`GET /ap
 
 ---
 
-## 12. REST API Reference Overview
+## 13. REST API Reference Overview
 
 The FastAPI backend exposes structured endpoints under `/api/v1`:
 
@@ -238,7 +246,7 @@ The FastAPI backend exposes structured endpoints under `/api/v1`:
 
 ---
 
-## 13. Security & Safeguards
+## 14. Security & Safeguards
 
 - **JWT Authentication**: Signed JWT tokens with expiration enforcement.
 - **Server-Side RBAC**: Route dependency verification (`require_role`) preventing unauthorized state modifications.
@@ -249,7 +257,7 @@ The FastAPI backend exposes structured endpoints under `/api/v1`:
 
 ---
 
-## 14. Isolated Simulation Engine (`[SIMULATION]`)
+## 15. Isolated Simulation Engine (`[SIMULATION]`)
 
 ChargeShield includes a dedicated simulation engine (`/simulation`) for operational testing:
 - **Scenario Profiles**: Inject predefined vectors like `HIGH_RISK_CHARGEBACK`, `FRIENDLY_FRAUD`, or `LOW_AMOUNT_RECURRING`.
@@ -258,7 +266,7 @@ ChargeShield includes a dedicated simulation engine (`/simulation`) for operatio
 
 ---
 
-## 15. Verification & Testing
+## 16. Verification & Testing
 
 ChargeShield includes a comprehensive automated test suite built with Pytest:
 
@@ -276,7 +284,7 @@ npm run build
 
 ---
 
-## 16. Local Quickstart Guide
+## 17. Local Quickstart Guide
 
 ### Prerequisites
 - Python 3.10+
@@ -340,7 +348,7 @@ docker-compose up --build
 
 ---
 
-## 17. Repository Project Structure
+## 18. Repository Project Structure
 
 ```
 ChargeShield/
@@ -375,7 +383,7 @@ ChargeShield/
 
 ---
 
-## 18. System Limitations & Transparency
+## 19. System Limitations & Transparency
 
 - **Synthetic Relational Dataset**: All data is generated synthetically using reproducible random seeds; ChargeShield is not connected to live card network or merchant financial production streams.
 - **Advisory AI Boundaries**: Models and agent systems generate advisory predictions and evidence packages; financial settlement or contestation submission is never automated.
@@ -384,7 +392,7 @@ ChargeShield/
 
 ---
 
-## 19. Engineering Roadmap
+## 20. Engineering Roadmap
 
 - [ ] **Automated Continuous Re-calibration**: Automated drift detection and periodic probability calibration updates upon new ground-truth outcome labeling.
 - [ ] **Multi-Tenant Merchant Isolation**: Schema-level multi-tenancy for payment aggregators managing multi-merchant portfolios.
@@ -392,6 +400,6 @@ ChargeShield/
 
 ---
 
-## 20. License
+## 21. License
 
 This project is licensed under the MIT License — see the `LICENSE` file for details.
