@@ -126,8 +126,8 @@ export const ModelPage: React.FC = () => {
         titleLines={['MODEL INTELLIGENCE', '& GOVERNANCE']}
         subtitle="Production model monitoring, probability calibration, threshold optimization, outcome feedback & model registry."
         metadata={[
-          { label: 'ACTIVE MODEL', value: registry?.active_production_model?.model_name || meta?.primary_algorithm || 'LightGBM Classifier' },
-          { label: 'VERSION', value: registry?.active_production_model?.version_id || 'v1.0.0-prod' },
+          { label: 'ACTIVE MODEL', value: registry?.active_production_model?.model_name || (registry?.active_production_model as any)?.algorithm || meta?.primary_algorithm || 'LightGBM Classifier' },
+          { label: 'VERSION', value: registry?.active_production_model?.version_id || (registry?.active_production_model as any)?.version || 'v1.0.0-prod' },
           { label: 'ACTIVE THRESHOLD', value: thresholds?.current_threshold !== undefined && thresholds?.current_threshold !== null ? `${thresholds.current_threshold}` : 'N/A' },
           { label: 'GOVERNANCE RULE', value: 'NO_AUTONOMOUS_RETRAINING' }
         ]}
@@ -155,8 +155,9 @@ export const ModelPage: React.FC = () => {
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px] uppercase">HUMAN-AI AGREEMENT RATE</div>
                 <div className="text-2xl font-bold text-[#9FE6C1]">
-                  {learning?.human_ai_agreement_rate !== undefined && learning?.human_ai_agreement_rate !== null
-                    ? `${(learning.human_ai_agreement_rate * 100).toFixed(1)}%`
+                  {(learning?.human_ai_agreement_rate ?? (learning as any)?.ai_vs_human_agreement_rate) !== undefined &&
+                  (learning?.human_ai_agreement_rate ?? (learning as any)?.ai_vs_human_agreement_rate) !== null
+                    ? `${((learning?.human_ai_agreement_rate ?? (learning as any)?.ai_vs_human_agreement_rate) * 100).toFixed(1)}%`
                     : 'N/A'}
                 </div>
                 <div className="text-[10px] text-white/40">{learning?.agreement_status || 'MONITORING'}</div>
@@ -165,19 +166,19 @@ export const ModelPage: React.FC = () => {
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px] uppercase">OUTCOME COVERAGE</div>
                 <div className="text-2xl font-bold text-[#AFDDFF]">
-                  {learning?.outcome_coverage?.coverage_percentage !== undefined && learning?.outcome_coverage?.coverage_percentage !== null
-                    ? `${learning.outcome_coverage.coverage_percentage.toFixed(1)}%`
+                  {((learning as any)?.outcome_coverage?.coverage_percentage ?? ((learning as any)?.total_eligible_production_cases ? (((learning as any)?.total_labeled_outcomes / (learning as any)?.total_eligible_production_cases) * 100) : null)) !== null
+                    ? `${((learning as any)?.outcome_coverage?.coverage_percentage ?? ((learning as any)?.total_eligible_production_cases ? (((learning as any)?.total_labeled_outcomes / (learning as any)?.total_eligible_production_cases) * 100) : 100)).toFixed(1)}%`
                     : 'N/A'}
                 </div>
                 <div className="text-[10px] text-white/40">
-                  {learning?.outcome_coverage?.cases_with_ground_truth ?? 'N/A'} / {learning?.outcome_coverage?.total_production_predictions ?? 'N/A'} Cases Ground-Truthed
+                  {(learning as any)?.outcome_coverage?.cases_with_ground_truth ?? (learning as any)?.total_labeled_outcomes ?? 'N/A'} / {(learning as any)?.outcome_coverage?.total_production_predictions ?? (learning as any)?.total_eligible_production_cases ?? 'N/A'} Cases Ground-Truthed
                 </div>
               </div>
 
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px] uppercase">LEARNING READINESS</div>
                 <div className="text-xl font-bold text-[#F4C46B]">
-                  {learning?.pipeline_readiness?.current_outcomes ?? 'N/A'} / {learning?.pipeline_readiness?.min_required_outcomes ?? 50}
+                  {learning?.pipeline_readiness?.current_outcomes ?? (learning as any)?.total_labeled_outcomes ?? 'N/A'} / {learning?.pipeline_readiness?.min_required_outcomes ?? 50}
                 </div>
                 <div className="text-[10px] text-white/40">Minimum 50 Ground-Truth Outcomes Required</div>
               </div>
@@ -361,7 +362,9 @@ export const ModelPage: React.FC = () => {
                 </h3>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono text-white/40 uppercase">ECE: {(calibration.overall_expected_calibration_error * 100).toFixed(2)}%</span>
+                <span className="text-[10px] font-mono text-white/40 uppercase">
+                  ECE: {((calibration.overall_expected_calibration_error ?? (calibration as any).mean_calibration_gap ?? 0) * 100).toFixed(2)}%
+                </span>
                 <TechnicalStatus
                   status={calibration.calibration_status}
                   variant={calibration.calibration_status === 'CALIBRATED' ? 'green' : 'amber'}
@@ -371,19 +374,24 @@ export const ModelPage: React.FC = () => {
 
             {/* Probability Buckets Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2 font-mono text-xs">
-              {calibration.buckets.map((b) => (
-                <div key={b.bucket_range} className="p-2 border border-white/10 bg-black text-center space-y-1">
-                  <div className="text-white/40 text-[9px] font-bold">{b.bucket_range}</div>
-                  <div className="text-sm font-bold text-[#AFDDFF]">{b.predicted_count}</div>
-                  <div className="text-[8px] text-white/30">Preds</div>
-                  <div className="text-[9px] text-[#9FE6C1]">{(b.actual_win_rate * 100).toFixed(0)}%</div>
-                  <div className="text-[8px] text-white/30">Win Rate</div>
-                </div>
-              ))}
+              {(calibration.buckets || []).map((b: any) => {
+                const count = b.predicted_count ?? b.sample_count ?? 0;
+                const winRate = (b.actual_win_rate ?? b.observed_win_rate ?? 0) * 100;
+
+                return (
+                  <div key={b.bucket_range} className="p-2 border border-white/10 bg-black text-center space-y-1">
+                    <div className="text-white/40 text-[9px] font-bold">{b.bucket_range}</div>
+                    <div className="text-sm font-bold text-[#AFDDFF]">{count}</div>
+                    <div className="text-[8px] text-white/30">Preds</div>
+                    <div className="text-[9px] text-[#9FE6C1]">{winRate.toFixed(0)}%</div>
+                    <div className="text-[8px] text-white/30">Win Rate</div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="p-3 border border-white/10 bg-black text-[11px] font-mono text-white/50">
-              RECOMMENDATION: {calibration.recommendation} (Data Provenance: {calibration.data_provenance})
+              RECOMMENDATION: {calibration.recommendation || (calibration as any).message || 'AWAITING BASELINE'} (Data Provenance: {calibration.data_provenance})
             </div>
           </div>
         )}
@@ -433,10 +441,14 @@ export const ModelPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {thresholds.threshold_evaluations.map((t) => {
+                  {(thresholds.threshold_evaluations || (thresholds as any).evaluations || []).map((t: any) => {
                     const isCurrent = t.threshold === thresholds.current_threshold;
                     const isOptimalF1 = t.threshold === thresholds.optimal_f1_threshold;
                     const isOptimalFin = t.threshold === thresholds.optimal_financial_threshold;
+
+                    const contestCount = t.predicted_contest_count ?? t.predicted_contests ?? 0;
+                    const acceptCount = t.predicted_accept_count ?? t.predicted_accepts ?? 0;
+                    const netRecovery = t.net_financial_recovery ?? t.net_financial_advantage ?? t.expected_recovery ?? 0;
 
                     return (
                       <tr
@@ -449,14 +461,16 @@ export const ModelPage: React.FC = () => {
                           {t.threshold.toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-white/70">
-                          {t.predicted_contest_count} / {t.predicted_accept_count}
+                          {contestCount} / {acceptCount}
                         </td>
                         <td className="py-3 px-4 text-white/70">{(t.precision * 100).toFixed(1)}%</td>
                         <td className="py-3 px-4 text-white/70">{(t.recall * 100).toFixed(1)}%</td>
                         <td className="py-3 px-4 text-white/90 font-bold">{t.f1_score.toFixed(4)}</td>
-                        <td className="py-3 px-4 text-white/70">{(t.accuracy * 100).toFixed(1)}%</td>
+                        <td className="py-3 px-4 text-white/70">
+                          {t.accuracy !== undefined && t.accuracy !== null ? `${(t.accuracy * 100).toFixed(1)}%` : 'N/A'}
+                        </td>
                         <td className="py-3 px-4 text-[#9FE6C1] font-bold">
-                          ₹{t.net_financial_recovery.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹{netRecovery.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="py-3 px-4">
                           {isCurrent && (
@@ -613,7 +627,7 @@ export const ModelPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                      {feedback.disagreement_cases.map((dc) => (
+                      {(feedback.disagreement_cases || []).map((dc: any) => (
                         <tr key={dc.dispute_id} className="hover:bg-white/[0.03]">
                           <td className="py-3 px-4 text-[#AFDDFF] font-bold">{dc.dispute_id}</td>
                           <td className="py-3 px-4 text-white">₹{dc.disputed_amount.toLocaleString()}</td>
@@ -649,46 +663,50 @@ export const ModelPage: React.FC = () => {
                 </h3>
               </div>
               <TechnicalStatus
-                status={`ACTIVE: ${registry.active_production_model.version_id}`}
+                status={`ACTIVE: ${registry.active_production_model?.version_id || (registry.active_production_model as any)?.version || (registry.active_production_model as any)?.id || 'v1.0.0'}`}
                 variant="green"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
-              {registry.versions.map((v) => (
-                <div
-                  key={v.version_id}
-                  className={`p-4 border bg-black space-y-2 ${
-                    v.lifecycle_status === 'PRODUCTION'
-                      ? 'border-[#9FE6C1]/40 bg-[#9FE6C1]/5'
-                      : 'border-white/12'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white text-sm">{v.version_id}</span>
-                    <span className={`px-2 py-0.5 border text-[9px] font-bold uppercase ${
+              {(registry.versions || []).map((v: any) => {
+                const versionId = v.version_id || v.version || v.id;
+
+                return (
+                  <div
+                    key={versionId}
+                    className={`p-4 border bg-black space-y-2 ${
                       v.lifecycle_status === 'PRODUCTION'
-                        ? 'border-[#9FE6C1] text-[#9FE6C1]'
-                        : 'border-white/20 text-white/50'
-                    }`}>
-                      {v.lifecycle_status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[10px] text-white/60">
-                    <div>Algorithm: <span className="text-white">{v.algorithm}</span></div>
-                    <div>Threshold: <span className="text-[#AFDDFF] font-bold">{v.threshold}</span></div>
-                    <div>Evaluated F1: <span className="text-white">{v.evaluation_f1 ?? 'N/A'}</span></div>
-                    <div>Served Preds: <span className="text-white">{v.total_predictions_served}</span></div>
-                  </div>
-
-                  {v.notes && (
-                    <div className="text-[10px] text-white/40 pt-1 border-t border-white/10">
-                      Notes: {v.notes}
+                        ? 'border-[#9FE6C1]/40 bg-[#9FE6C1]/5'
+                        : 'border-white/12'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">{versionId}</span>
+                      <span className={`px-2 py-0.5 border text-[9px] font-bold uppercase ${
+                        v.lifecycle_status === 'PRODUCTION'
+                          ? 'border-[#9FE6C1] text-[#9FE6C1]'
+                          : 'border-white/20 text-white/50'
+                      }`}>
+                        {v.lifecycle_status}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px] text-white/60">
+                      <div>Algorithm: <span className="text-white">{v.algorithm}</span></div>
+                      <div>Threshold: <span className="text-[#AFDDFF] font-bold">{v.threshold}</span></div>
+                      <div>Evaluated F1: <span className="text-white">{v.evaluation_f1 ?? 'N/A'}</span></div>
+                      <div>Served Preds: <span className="text-white">{v.total_predictions_served ?? 'N/A'}</span></div>
+                    </div>
+
+                    {v.notes && (
+                      <div className="text-[10px] text-white/40 pt-1 border-t border-white/10">
+                        Notes: {v.notes}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
