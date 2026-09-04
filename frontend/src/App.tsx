@@ -7,6 +7,7 @@ import { GridBackground } from './components/visual/GridBackground';
 import { PageTransition } from './components/visual/PageTransition';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
+import { IntroPage } from './pages/IntroPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { QueuePage } from './pages/QueuePage';
 import { CaseDetailPage } from './pages/CaseDetailPage';
@@ -41,21 +42,22 @@ function AppContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const isLandingOrLogin = location.pathname === '/' || location.pathname === '/login';
+  const isLandingOrLogin = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/intro';
 
   return (
     <div className="min-h-screen w-full bg-[#05070D] text-white font-sans antialiased relative selection:bg-[#AFDDFF] selection:text-black flex flex-col">
       {/* Background Grid */}
       <GridBackground />
 
-      {/* Top Sticky LŪMEN Navigation Rail (hidden on /login) */}
-      {location.pathname !== '/login' && <NavigationRail />}
+      {/* Top Sticky LŪMEN Navigation Rail (hidden on /login and /intro) */}
+      {location.pathname !== '/login' && location.pathname !== '/intro' && <NavigationRail />}
 
       {/* Main Content Area */}
       <main className="flex-1 w-full relative z-10">
         <PageTransition key={location.pathname}>
           <Routes location={location}>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/intro" element={<IntroPage />} />
             <Route path="/login" element={<LoginPage />} />
             
             {/* Operational Protected Routes */}

@@ -11,7 +11,8 @@ export type BackgroundVariant =
   | 'analytics'
   | 'simulation'
   | 'audit'
-  | 'login';
+  | 'login'
+  | 'intro';
 
 interface AnimatedBackgroundProps {
   variant?: BackgroundVariant;
@@ -29,6 +30,15 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ variant 
       blur: '0px',
       overlayIntensity: 0.55,
       primaryGlow: 'rgba(175, 221, 255, 0.12)',
+      secondaryGlow: 'rgba(157, 140, 255, 0.08)'
+    },
+    intro: {
+      bg: '#05070D',
+      videoSrc: '/videos/intro.mp4',
+      opacity: 0.38,
+      blur: '0px',
+      overlayIntensity: 0.55,
+      primaryGlow: 'rgba(175, 221, 255, 0.14)',
       secondaryGlow: 'rgba(157, 140, 255, 0.08)'
     },
     dashboard: {
