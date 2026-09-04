@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { NavigationRail } from './components/NavigationRail';
 import { GridBackground } from './components/visual/GridBackground';
@@ -16,6 +16,14 @@ import { AuditPage } from './pages/AuditPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SimulationPage } from './pages/SimulationPage';
 import { api } from './services/api';
+
+function RootRoute() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/intro" replace />;
+  }
+  return <LandingPage />;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -56,7 +64,7 @@ function AppContent() {
       <main className="flex-1 w-full relative z-10">
         <PageTransition key={location.pathname}>
           <Routes location={location}>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/intro" element={<IntroPage />} />
             <Route path="/login" element={<LoginPage />} />
             

@@ -62,6 +62,7 @@ export const CaseDetailPage: React.FC = () => {
   const canUpload = userRole === 'ADMIN' || userRole === 'REVIEWER';
   const canRevoke = userRole === 'ADMIN';
   const canExportPDF = userRole === 'ADMIN' || userRole === 'REVIEWER';
+  const canSubmitDecision = userRole === 'ADMIN' || userRole === 'REVIEWER';
 
   const handleExportPDF = async () => {
     try {
@@ -727,10 +728,14 @@ export const CaseDetailPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <span className="text-white/40 text-[10px]">CONFIDENCE SCORE:</span>
                 <span className="text-2xl font-bold text-[#9FE6C1]">
-                  {Math.round(((evidenceConfidence.confidence_score ?? evidenceConfidence.evidence_confidence_score ?? 0.85) <= 1 ? (evidenceConfidence.confidence_score ?? evidenceConfidence.evidence_confidence_score ?? 0.85) * 100 : (evidenceConfidence.confidence_score ?? evidenceConfidence.evidence_confidence_score ?? 85)))}%
+                  {(() => {
+                    const score = evidenceConfidence.confidence_score ?? evidenceConfidence.evidence_confidence_score;
+                    if (score === undefined || score === null) return 'N/A';
+                    return `${Math.round(score <= 1 ? score * 100 : score)}%`;
+                  })()}
                 </span>
                 <span className="px-2 py-0.5 border border-[#9FE6C1]/40 bg-[#9FE6C1]/10 text-[#9FE6C1] uppercase font-bold text-[10px]">
-                  [{evidenceConfidence.readiness_tier || evidenceConfidence.evidence_status || 'HIGH'}]
+                  [{evidenceConfidence.readiness_tier || evidenceConfidence.evidence_status || 'UNKNOWN'}]
                 </span>
               </div>
             </div>
@@ -738,15 +743,21 @@ export const CaseDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px]">VERIFIED CLAIMS</div>
-                <div className="text-lg font-bold text-[#9FE6C1]">{evidenceConfidence.verified_claims_count ?? 4} Verified</div>
+                <div className="text-lg font-bold text-[#9FE6C1]">
+                  {evidenceConfidence.verified_claims_count !== undefined && evidenceConfidence.verified_claims_count !== null ? `${evidenceConfidence.verified_claims_count} Verified` : 'N/A'}
+                </div>
               </div>
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px]">UNVERIFIABLE CLAIMS</div>
-                <div className="text-lg font-bold text-white/50">{evidenceConfidence.unverifiable_claims_count ?? 0} Unverified</div>
+                <div className="text-lg font-bold text-white/50">
+                  {evidenceConfidence.unverifiable_claims_count !== undefined && evidenceConfidence.unverifiable_claims_count !== null ? `${evidenceConfidence.unverifiable_claims_count} Unverified` : 'N/A'}
+                </div>
               </div>
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px]">MISMATCHED CLAIMS</div>
-                <div className="text-lg font-bold text-[#E68A8A]">{evidenceConfidence.mismatched_claims_count ?? 0} Mismatches</div>
+                <div className="text-lg font-bold text-[#E68A8A]">
+                  {evidenceConfidence.mismatched_claims_count !== undefined && evidenceConfidence.mismatched_claims_count !== null ? `${evidenceConfidence.mismatched_claims_count} Mismatches` : 'N/A'}
+                </div>
               </div>
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px]">DELIVERY SIGNATURE</div>
@@ -1114,6 +1125,17 @@ export const CaseDetailPage: React.FC = () => {
                   "{latestDecision.reason}"
                 </div>
               </div>
+            </div>
+          ) : !canSubmitDecision ? (
+            /* Read-Only Role View for ANALYST / AUDITOR */
+            <div className="p-6 border border-white/15 bg-white/5 space-y-3 font-mono text-xs text-white/70">
+              <div className="font-bold text-[#AFDDFF] uppercase tracking-wider flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#AFDDFF]" />
+                [ READ-ONLY INVESTIGATION MODE ]
+              </div>
+              <p className="leading-relaxed text-white/60">
+                Your current role <span className="text-[#AFDDFF] font-bold">[{userRole}]</span> allows full evidence and telemetry investigation, but decision authorization & financial submission are restricted to ADMIN and REVIEWER personnel.
+              </p>
             </div>
           ) : (
             /* Decision Authorization Form */

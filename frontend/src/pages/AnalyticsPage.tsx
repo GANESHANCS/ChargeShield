@@ -33,12 +33,15 @@ export const AnalyticsPage: React.FC = () => {
       if (!silent) setLoading(true);
       setError(null);
       const [overview, ops, alerts, outcome] = await Promise.all([
-        api.getAnalyticsOverview(),
+        api.getAnalyticsOverview().catch(() => null),
         api.getOperationsOverview().catch(() => null),
         api.getOperationsAlerts().catch(() => []),
         api.getOutcomeOverview().catch(() => null)
       ]);
       setData(overview);
+      if (!overview && !ops) {
+        setError('Unable to retrieve operational analytics data from backend services.');
+      }
       if (ops) setOpsOverview(ops);
       if (alerts) setOpsAlerts(alerts);
       if (outcome) setOutcomeData(outcome);
@@ -95,15 +98,36 @@ export const AnalyticsPage: React.FC = () => {
 
   if (error || !data) {
     return (
-      <div className="p-8 max-w-2xl mx-auto my-12 bg-[#E68A8A]/10 border border-[#E68A8A]/30 p-6 text-[#E68A8A] space-y-4 font-mono text-xs">
-        <div className="font-bold text-sm uppercase tracking-wider">ANALYTICS SERVICE CONNECTION ERROR</div>
-        <p className="opacity-90 leading-relaxed">{error}</p>
-        <button
-          onClick={() => fetchAnalytics()}
-          className="px-4 py-2 bg-[#E68A8A] text-black font-mono font-bold text-xs uppercase tracking-wider"
-        >
-          RETRY CONNECTION
-        </button>
+      <div className="relative min-h-screen bg-transparent">
+        <AnimatedBackground variant="analytics" />
+
+        {/* Editorial Image Hero Header */}
+        <EditorialImageHero
+          imageSrc="/assets/analytics_financial_landscape.png"
+          category="05 / OPERATIONAL_INTELLIGENCE"
+          titleLines={['OPERATIONAL', 'INTELLIGENCE']}
+          subtitle="Living financial system analytics, recovery trajectory, and AI alignment metrics."
+          metadata={[
+            { label: 'ACTIVE DISPUTES', value: opsOverview?.total_active_disputes ? `${opsOverview.total_active_disputes}` : 'N/A' },
+            { label: 'RECOVERABLE SAVINGS', value: opsOverview?.estimated_recoverable_value ? `₹${(opsOverview.estimated_recoverable_value / 1000).toFixed(0)}K INR` : 'N/A' },
+            { label: 'ALIGNMENT RATE', value: 'N/A' },
+          ]}
+        />
+
+        <div className="relative z-10 px-[20px] md:px-[35px] py-12 max-w-[1600px] mx-auto">
+          <div className="p-8 bg-[#E68A8A]/10 border border-[#E68A8A]/30 space-y-4 font-mono text-xs text-[#E68A8A]">
+            <div className="font-bold text-sm uppercase tracking-wider">[ ANALYTICS DATA UNAVAILABLE ]</div>
+            <p className="opacity-90 leading-relaxed">
+              {error || 'Unable to retrieve current operational analytics dataset from backend services.'}
+            </p>
+            <button
+              onClick={() => fetchAnalytics()}
+              className="px-4 py-2 bg-[#E68A8A] text-black font-mono font-bold text-xs uppercase tracking-wider hover:bg-[#E68A8A]/80 transition-all"
+            >
+              [ RETRY CONNECTION ]
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

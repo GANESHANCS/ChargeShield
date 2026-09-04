@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export interface UserProfile {
   user_id: string;
@@ -52,9 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const login = async (username: string, password: string) => {
+    api.clearCache();
     const apiBaseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
       const res = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
@@ -72,6 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       setToken(data.access_token);
       setUser(data.user);
     } catch (err: any) {
@@ -87,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    api.clearCache();
     if (token) {
       const apiBaseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
       fetch(`${apiBaseUrl}/api/v1/auth/logout`, {
@@ -97,6 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }).catch(() => {});
     }
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     setToken(null);
     setUser(null);
   };

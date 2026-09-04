@@ -8,7 +8,7 @@ import logging
 from typing import List
 
 from backend.db.database import get_db_session
-from backend.db.models import ReviewDecisionModel
+from backend.db.models import ReviewDecisionModel, DisputeModel
 from backend.services.case_service import case_service
 from backend.schemas.operations import ModelFeedbackResponse, DisagreementCase
 
@@ -26,11 +26,10 @@ class ModelFeedbackService:
         override_count = 0
         escalation_count = 0
 
-        # Load case amounts lookup map
-        all_cases = case_service.list_cases(page=1, page_size=200).get("items", [])
-        amount_map = {c["dispute_id"]: float(c.get("disputed_amount", 0.0)) for c in all_cases}
-
+        # Load case amounts lookup map directly from database
         with get_db_session() as session:
+            dispute_rows = session.query(DisputeModel.dispute_id, DisputeModel.disputed_amount).all()
+            amount_map = {r.dispute_id: float(r.disputed_amount or 0.0) for r in dispute_rows}
             decisions = session.query(ReviewDecisionModel).all()
             total_decisions = len(decisions)
 

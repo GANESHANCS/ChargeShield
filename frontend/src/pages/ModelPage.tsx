@@ -19,7 +19,12 @@ import { AnimatedBackground } from '../components/visual/AnimatedBackground';
 import { EditorialImageHero } from '../components/visual/EditorialImageHero';
 import { ThresholdApprovalModal } from '../components/ThresholdApprovalModal';
 
+import { useAuth } from '../context/AuthContext';
+
 export const ModelPage: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [modelPerf, setModelPerf] = useState<ModelPerformanceResponse | null>(null);
   const [monitoring, setMonitoring] = useState<ModelMonitoringInfo | null>(null);
   const [feedback, setFeedback] = useState<ModelFeedbackInfo | null>(null);
@@ -43,7 +48,7 @@ export const ModelPage: React.FC = () => {
       setError(null);
 
       const [perf, mon, fb, cal, thresh, reg, lr, out] = await Promise.all([
-        api.getModelPerformance(),
+        api.getModelPerformance().catch(() => null),
         api.getModelMonitoring().catch(() => null),
         api.getModelFeedback().catch(() => null),
         api.getModelCalibration().catch(() => null),
@@ -53,7 +58,7 @@ export const ModelPage: React.FC = () => {
         api.getDisputeOutcomes().catch(() => ({ outcomes: [] }))
       ]);
 
-      setModelPerf(perf);
+      if (perf) setModelPerf(perf);
       if (mon) setMonitoring(mon);
       if (fb) setFeedback(fb);
       if (cal) setCalibration(cal);
@@ -61,6 +66,10 @@ export const ModelPage: React.FC = () => {
       if (reg) setRegistry(reg);
       if (lr) setLearning(lr);
       if (out && out.outcomes) setOutcomes(out.outcomes);
+
+      if (!perf && !mon && !cal && !thresh) {
+        setError('Model intelligence services currently initializing or data stream unavailable.');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch model performance metrics');
     } finally {
@@ -76,26 +85,35 @@ export const ModelPage: React.FC = () => {
     return (
       <div className="p-8 md:p-12 flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-white/50 font-mono text-xs tracking-widest uppercase">
-          <span className="h-2 w-2 bg-[#AFDDFF] animate-ping" />
+          <span className="h-2 w-2 bg-[#A78BFA] animate-ping" />
           <span>FETCHING PHASE 12 CONTINUOUS LEARNING & MODEL GOVERNANCE REPORT...</span>
         </div>
       </div>
     );
   }
 
-  if (error || !modelPerf) {
+  if (error && !modelPerf && !monitoring && !calibration) {
     return (
       <div className="p-8 max-w-2xl mx-auto my-12 bg-[#E68A8A]/10 border border-[#E68A8A]/30 p-6 text-[#E68A8A] space-y-3 font-mono text-xs">
-        <div className="font-bold text-sm uppercase tracking-wider">MODEL EVALUATION REPORT UNAVAILABLE</div>
+        <div className="font-bold text-sm uppercase tracking-wider">[ MODEL EVALUATION REPORT UNAVAILABLE ]</div>
         <p>{error}</p>
+        <button
+          onClick={fetchModelData}
+          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-mono text-xs uppercase border border-white/20"
+        >
+          RETRY DATA FETCH
+        </button>
       </div>
     );
   }
 
-  const { model_metadata: meta, evaluation_report: rep } = modelPerf;
-  const lgbmOpt = rep.primary_lightgbm_optimal_threshold.metrics;
-  const logReg = rep.baseline_logistic_regression;
-  const sim = rep.financial_cost_simulation_inr;
+  // Safe defensive extraction to prevent ANY TypeError or black screen crashes
+  const meta = modelPerf?.model_metadata || null;
+  const rep = modelPerf?.evaluation_report || (modelPerf as any)?.evaluation_report_artifact || null;
+
+  const lgbmOpt = rep?.primary_lightgbm_optimal_threshold?.metrics || null;
+  const logReg = rep?.baseline_logistic_regression || null;
+  const sim = rep?.financial_cost_simulation_inr || null;
 
   return (
     <div className="relative min-h-screen bg-transparent">
@@ -108,9 +126,9 @@ export const ModelPage: React.FC = () => {
         titleLines={['MODEL INTELLIGENCE', '& GOVERNANCE']}
         subtitle="Production model monitoring, probability calibration, threshold optimization, outcome feedback & model registry."
         metadata={[
-          { label: 'ACTIVE MODEL', value: registry?.active_production_model?.model_name || meta.primary_algorithm || 'LightGBM Classifier' },
+          { label: 'ACTIVE MODEL', value: registry?.active_production_model?.model_name || meta?.primary_algorithm || 'LightGBM Classifier' },
           { label: 'VERSION', value: registry?.active_production_model?.version_id || 'v1.0.0-prod' },
-          { label: 'ACTIVE THRESHOLD', value: `${thresholds?.current_threshold ?? 0.29}` },
+          { label: 'ACTIVE THRESHOLD', value: thresholds?.current_threshold !== undefined && thresholds?.current_threshold !== null ? `${thresholds.current_threshold}` : 'N/A' },
           { label: 'GOVERNANCE RULE', value: 'NO_AUTONOMOUS_RETRAINING' }
         ]}
       />
@@ -128,8 +146,8 @@ export const ModelPage: React.FC = () => {
                 </h3>
               </div>
               <TechnicalStatus
-                status={`PIPELINE: ${learning.pipeline_readiness.status}`}
-                variant={learning.pipeline_readiness.status === 'READY' ? 'green' : 'amber'}
+                status={`PIPELINE: ${learning?.pipeline_readiness?.status || 'MONITORING'}`}
+                variant={learning?.pipeline_readiness?.status === 'READY' ? 'green' : 'amber'}
               />
             </div>
 
@@ -137,25 +155,29 @@ export const ModelPage: React.FC = () => {
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px] uppercase">HUMAN-AI AGREEMENT RATE</div>
                 <div className="text-2xl font-bold text-[#9FE6C1]">
-                  {(learning.human_ai_agreement_rate * 100).toFixed(1)}%
+                  {learning?.human_ai_agreement_rate !== undefined && learning?.human_ai_agreement_rate !== null
+                    ? `${(learning.human_ai_agreement_rate * 100).toFixed(1)}%`
+                    : 'N/A'}
                 </div>
-                <div className="text-[10px] text-white/40">{learning.agreement_status}</div>
+                <div className="text-[10px] text-white/40">{learning?.agreement_status || 'MONITORING'}</div>
               </div>
 
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px] uppercase">OUTCOME COVERAGE</div>
                 <div className="text-2xl font-bold text-[#AFDDFF]">
-                  {learning.outcome_coverage.coverage_percentage.toFixed(1)}%
+                  {learning?.outcome_coverage?.coverage_percentage !== undefined && learning?.outcome_coverage?.coverage_percentage !== null
+                    ? `${learning.outcome_coverage.coverage_percentage.toFixed(1)}%`
+                    : 'N/A'}
                 </div>
                 <div className="text-[10px] text-white/40">
-                  {learning.outcome_coverage.cases_with_ground_truth} / {learning.outcome_coverage.total_production_predictions} Cases Ground-Truthed
+                  {learning?.outcome_coverage?.cases_with_ground_truth ?? 'N/A'} / {learning?.outcome_coverage?.total_production_predictions ?? 'N/A'} Cases Ground-Truthed
                 </div>
               </div>
 
               <div className="p-4 border border-white/12 bg-black space-y-1">
                 <div className="text-white/40 text-[10px] uppercase">LEARNING READINESS</div>
                 <div className="text-xl font-bold text-[#F4C46B]">
-                  {learning.pipeline_readiness.current_outcomes} / {learning.pipeline_readiness.min_required_outcomes}
+                  {learning?.pipeline_readiness?.current_outcomes ?? 'N/A'} / {learning?.pipeline_readiness?.min_required_outcomes ?? 50}
                 </div>
                 <div className="text-[10px] text-white/40">Minimum 50 Ground-Truth Outcomes Required</div>
               </div>
@@ -190,37 +212,55 @@ export const ModelPage: React.FC = () => {
                 Cost-Sensitive Financial Simulation (INR)
               </h3>
             </div>
-            <TechnicalStatus 
-              status={`₹${sim.cost_savings_inr.toLocaleString('en-IN', { minimumFractionDigits: 2 })} SAVINGS`} 
-              variant="green" 
-            />
+            {sim?.cost_savings_inr !== undefined && sim?.cost_savings_inr !== null ? (
+              <TechnicalStatus 
+                status={`₹${sim.cost_savings_inr.toLocaleString('en-IN', { minimumFractionDigits: 2 })} SAVINGS`} 
+                variant="green" 
+              />
+            ) : (
+              <TechnicalStatus status="SIMULATION PENDING" variant="amber" />
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono text-xs">
-            <div className="p-4 border border-white/12 bg-black space-y-1">
-              <div className="text-white/40 text-[10px] uppercase">NAIVE STRATEGY (ALWAYS CONTEST)</div>
-              <div className="text-2xl font-light text-[#E68A8A]">₹{sim.cost_naive_always_contest.toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-white/40">Incurs loss fees on weak cases</div>
-            </div>
+          {sim ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono text-xs">
+              <div className="p-4 border border-white/12 bg-black space-y-1">
+                <div className="text-white/40 text-[10px] uppercase">NAIVE STRATEGY (ALWAYS CONTEST)</div>
+                <div className="text-2xl font-light text-[#E68A8A]">
+                  {sim.cost_naive_always_contest !== undefined ? `₹${sim.cost_naive_always_contest.toLocaleString('en-IN')}` : 'N/A'}
+                </div>
+                <div className="text-[10px] text-white/40">Incurs loss fees on weak cases</div>
+              </div>
 
-            <div className="p-4 border border-white/12 bg-black space-y-1">
-              <div className="text-white/40 text-[10px] uppercase">MODEL @ DEFAULT (0.50 THRESHOLD)</div>
-              <div className="text-2xl font-light text-[#F4C46B]">₹{sim['cost_model_default_0.50'].toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-white/40">Standard classification threshold</div>
-            </div>
+              <div className="p-4 border border-white/12 bg-black space-y-1">
+                <div className="text-white/40 text-[10px] uppercase">MODEL @ DEFAULT (0.50 THRESHOLD)</div>
+                <div className="text-2xl font-light text-[#F4C46B]">
+                  {sim['cost_model_default_0.50'] !== undefined ? `₹${sim['cost_model_default_0.50'].toLocaleString('en-IN')}` : 'N/A'}
+                </div>
+                <div className="text-[10px] text-white/40">Standard classification threshold</div>
+              </div>
 
-            <div className="p-4 border border-[#AFDDFF]/40 bg-[#AFDDFF]/5 space-y-1">
-              <div className="text-[#AFDDFF] text-[10px] uppercase font-bold">OPTIMAL MODEL @ 0.29 THRESHOLD</div>
-              <div className="text-2xl font-light text-[#AFDDFF]">₹{sim.cost_model_optimal_threshold.toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-[#AFDDFF]/80">Minimizes net financial loss</div>
-            </div>
+              <div className="p-4 border border-[#AFDDFF]/40 bg-[#AFDDFF]/5 space-y-1">
+                <div className="text-[#AFDDFF] text-[10px] uppercase font-bold">OPTIMAL MODEL @ 0.29 THRESHOLD</div>
+                <div className="text-2xl font-light text-[#AFDDFF]">
+                  {sim.cost_model_optimal_threshold !== undefined ? `₹${sim.cost_model_optimal_threshold.toLocaleString('en-IN')}` : 'N/A'}
+                </div>
+                <div className="text-[10px] text-[#AFDDFF]/80">Minimizes net financial loss</div>
+              </div>
 
-            <div className="p-4 border border-white/12 bg-black space-y-1">
-              <div className="text-white/40 text-[10px] uppercase">NET FINANCIAL SAVINGS</div>
-              <div className="text-2xl font-light text-[#9FE6C1]">₹{sim.cost_savings_inr.toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-white/40">Over naive contestation strategy</div>
+              <div className="p-4 border border-white/12 bg-black space-y-1">
+                <div className="text-white/40 text-[10px] uppercase">NET FINANCIAL SAVINGS</div>
+                <div className="text-2xl font-light text-[#9FE6C1]">
+                  {sim.cost_savings_inr !== undefined ? `₹${sim.cost_savings_inr.toLocaleString('en-IN')}` : 'N/A'}
+                </div>
+                <div className="text-[10px] text-white/40">Over naive contestation strategy</div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-6 border border-white/10 bg-black text-xs font-mono text-white/60">
+              [ FINANCIAL COST SIMULATION DATA UNAVAILABLE ] — Simulation metrics have not been published by the backend evaluation engine.
+            </div>
+          )}
         </div>
 
         <ThinDivider />
@@ -233,32 +273,38 @@ export const ModelPage: React.FC = () => {
               <div>
                 <SectionLabel label="PRIMARY_CLASSIFIER" />
                 <h3 className="text-xl font-display font-semibold text-white mt-1">
-                  {meta.primary_algorithm || 'LightGBM Classifier'}
+                  {meta?.primary_algorithm || 'LightGBM Classifier'}
                 </h3>
               </div>
-              <TechnicalStatus status="SELECTED PRIMARY" variant="green" size="sm" />
+              <TechnicalStatus status={lgbmOpt ? "SELECTED PRIMARY" : "UNAVAILABLE"} variant={lgbmOpt ? "green" : "amber"} size="sm" />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 font-mono text-xs">
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="ACCURACY" value={`${(lgbmOpt.accuracy * 100).toFixed(2)}%`} accentColor="white" />
+            {lgbmOpt ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 font-mono text-xs">
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="ACCURACY" value={lgbmOpt.accuracy !== undefined ? `${(lgbmOpt.accuracy * 100).toFixed(2)}%` : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="PRECISION" value={lgbmOpt.precision !== undefined ? `${(lgbmOpt.precision * 100).toFixed(2)}%` : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="RECALL" value={lgbmOpt.recall !== undefined ? `${(lgbmOpt.recall * 100).toFixed(2)}%` : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="F1 SCORE" value={lgbmOpt.f1_score !== undefined ? lgbmOpt.f1_score.toFixed(4) : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="ROC-AUC" value={lgbmOpt.roc_auc !== undefined ? lgbmOpt.roc_auc.toFixed(4) : 'N/A'} accentColor="ice" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="PR-AUC" value={lgbmOpt.pr_auc !== undefined ? lgbmOpt.pr_auc.toFixed(4) : 'N/A'} accentColor="ice" />
+                </div>
               </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="PRECISION" value={`${(lgbmOpt.precision * 100).toFixed(2)}%`} accentColor="white" />
+            ) : (
+              <div className="p-6 border border-white/10 bg-black text-xs font-mono text-white/60">
+                [ PRIMARY CLASSIFIER EVALUATION METRICS UNAVAILABLE ]
               </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="RECALL" value={`${(lgbmOpt.recall * 100).toFixed(2)}%`} accentColor="white" />
-              </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="F1 SCORE" value={lgbmOpt.f1_score.toFixed(4)} accentColor="white" />
-              </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="ROC-AUC" value={lgbmOpt.roc_auc.toFixed(4)} accentColor="ice" />
-              </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="PR-AUC" value={lgbmOpt.pr_auc.toFixed(4)} accentColor="ice" />
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Baseline Logistic Regression */}
@@ -267,32 +313,38 @@ export const ModelPage: React.FC = () => {
               <div>
                 <SectionLabel label="BASELINE_BENCHMARK" />
                 <h3 className="text-xl font-display font-semibold text-white mt-1">
-                  {meta.baseline_algorithm || 'Logistic Regression'}
+                  {meta?.baseline_algorithm || 'Logistic Regression'}
                 </h3>
               </div>
-              <TechnicalStatus status="BASELINE" variant="ice" size="sm" />
+              <TechnicalStatus status={logReg ? "BASELINE" : "UNAVAILABLE"} variant={logReg ? "ice" : "amber"} size="sm" />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 font-mono text-xs">
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="ACCURACY" value={`${(logReg.accuracy * 100).toFixed(2)}%`} accentColor="white" />
+            {logReg ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 font-mono text-xs">
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="ACCURACY" value={logReg.accuracy !== undefined ? `${(logReg.accuracy * 100).toFixed(2)}%` : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="PRECISION" value={logReg.precision !== undefined ? `${(logReg.precision * 100).toFixed(2)}%` : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="RECALL" value={logReg.recall !== undefined ? `${(logReg.recall * 100).toFixed(2)}%` : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="F1 SCORE" value={logReg.f1_score !== undefined ? logReg.f1_score.toFixed(4) : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="ROC-AUC" value={logReg.roc_auc !== undefined ? logReg.roc_auc.toFixed(4) : 'N/A'} accentColor="white" />
+                </div>
+                <div className="p-3 border border-white/12 bg-black">
+                  <MetricDisplay label="PR-AUC" value={logReg.pr_auc !== undefined ? logReg.pr_auc.toFixed(4) : 'N/A'} accentColor="white" />
+                </div>
               </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="PRECISION" value={`${(logReg.precision * 100).toFixed(2)}%`} accentColor="white" />
+            ) : (
+              <div className="p-6 border border-white/10 bg-black text-xs font-mono text-white/60">
+                [ BASELINE BENCHMARK METRICS UNAVAILABLE ]
               </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="RECALL" value={`${(logReg.recall * 100).toFixed(2)}%`} accentColor="white" />
-              </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="F1 SCORE" value={logReg.f1_score.toFixed(4)} accentColor="white" />
-              </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="ROC-AUC" value={logReg.roc_auc.toFixed(4)} accentColor="white" />
-              </div>
-              <div className="p-3 border border-white/12 bg-black">
-                <MetricDisplay label="PR-AUC" value={logReg.pr_auc.toFixed(4)} accentColor="white" />
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -350,12 +402,18 @@ export const ModelPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-mono text-white/40 uppercase">ACTIVE: {thresholds.current_threshold}</span>
-                <button
-                  onClick={() => setShowThresholdModal(true)}
-                  className="px-4 py-1.5 border border-[#AFDDFF] bg-[#AFDDFF]/20 text-[#AFDDFF] font-bold hover:bg-[#AFDDFF]/30 font-mono text-xs uppercase tracking-wider transition-all"
-                >
-                  APPROVE THRESHOLD CHANGE
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => setShowThresholdModal(true)}
+                    className="px-4 py-1.5 border border-[#A78BFA] bg-[#A78BFA]/20 text-[#A78BFA] font-bold hover:bg-[#A78BFA]/30 font-mono text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    APPROVE THRESHOLD CHANGE
+                  </button>
+                ) : (
+                  <span className="px-3 py-1 border border-white/20 bg-white/5 text-white/50 text-[10px] font-mono uppercase tracking-wider">
+                    [ ADMIN AUTHORIZATION REQUIRED ]
+                  </span>
+                )}
               </div>
             </div>
 
@@ -446,14 +504,24 @@ export const ModelPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono text-xs">
             <div className="p-4 border border-white/12 bg-black space-y-2">
               <div className="text-white/40 text-[10px] uppercase">ACTIVE MODEL & VERSION</div>
-              <div className="text-lg font-bold text-[#AFDDFF]">{monitoring?.current_model || 'LightGBM'} v{monitoring?.model_version || '2.1.0'}</div>
-              <div className="text-[10px] text-white/50">Optimal Cost Threshold: {monitoring?.threshold_in_use ?? 0.29}</div>
+              <div className="text-lg font-bold text-[#AFDDFF]">
+                {monitoring?.current_model || 'LightGBM Classifier'} {monitoring?.model_version ? `v${monitoring.model_version}` : ''}
+              </div>
+              <div className="text-[10px] text-white/50">
+                Optimal Cost Threshold: {monitoring?.threshold_in_use !== undefined && monitoring?.threshold_in_use !== null ? monitoring.threshold_in_use : 'N/A'}
+              </div>
             </div>
 
             <div className="p-4 border border-white/12 bg-black space-y-2">
               <div className="text-white/40 text-[10px] uppercase">TOTAL EVALUATED RECORDS</div>
-              <div className="text-2xl font-light text-white">{monitoring?.prediction_count || 100} Cases</div>
-              <div className="text-[10px] text-white/50">Mean Win Prob: {((monitoring?.average_predicted_probability || 0.84) * 100).toFixed(1)}%</div>
+              <div className="text-2xl font-light text-white">
+                {monitoring?.prediction_count !== undefined && monitoring?.prediction_count !== null ? `${monitoring.prediction_count} Cases` : 'N/A'}
+              </div>
+              <div className="text-[10px] text-white/50">
+                Mean Win Prob: {monitoring?.average_predicted_probability !== undefined && monitoring?.average_predicted_probability !== null
+                  ? `${(monitoring.average_predicted_probability * 100).toFixed(1)}%`
+                  : 'N/A'}
+              </div>
             </div>
 
             <div className="p-4 border border-white/12 bg-black space-y-2">

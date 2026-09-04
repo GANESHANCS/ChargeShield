@@ -26,6 +26,7 @@ logger = logging.getLogger("chargeshield.analytics")
 class AnalyticsService:
     def __init__(self):
         logger.info("Initializing AnalyticsService engine.")
+        self._evidence_cache = None
 
     def _get_cases_list(self) -> List[Dict]:
         """Retrieves list of case dictionary items from case_service."""
@@ -95,9 +96,9 @@ class AnalyticsService:
             timestamp=now_iso
         )
 
-    def get_operational_metrics(self) -> OperationalMetrics:
+    def get_operational_metrics(self, cases: Optional[List[Dict]] = None) -> OperationalMetrics:
         """Aggregates review queue and human decision counts from persistent database."""
-        all_cases = self._get_cases_list()
+        all_cases = cases if cases is not None else self._get_cases_list()
         total_cases = len(all_cases)
 
         decided_count = 0
@@ -146,9 +147,9 @@ class AnalyticsService:
             avg_review_activity="100% Persistent SQLite Audited"
         )
 
-    def get_financial_analytics(self) -> FinancialAnalytics:
+    def get_financial_analytics(self, cases: Optional[List[Dict]] = None) -> FinancialAnalytics:
         """Aggregates actual dispute monetary values and decision breakdown."""
-        all_cases = self._get_cases_list()
+        all_cases = cases if cases is not None else self._get_cases_list()
         case_amount_map = {}
         for c in all_cases:
             did = c.get("dispute_id")
@@ -181,9 +182,10 @@ class AnalyticsService:
                 did = c.get("dispute_id")
                 amt = float(c.get("disputed_amount", 0.0))
                 if did:
-                    pred = prediction_service.predict_dispute(did)
-                    if pred.get("recommendation") == "CONTEST":
-                        simulated_recoverable_value += (amt * pred.get("win_probability", 0.0))
+                    rec = c.get("recommendation", "CONTEST")
+                    win_prob = c.get("win_probability", 0.0)
+                    if rec == "CONTEST":
+                        simulated_recoverable_value += (amt * win_prob)
 
         return FinancialAnalytics(
             total_disputed_value=round(total_disputed_value, 2),
@@ -195,16 +197,15 @@ class AnalyticsService:
             disclaimer="Synthetic / simulated data derived from LightGBM win probability and dispute amounts."
         )
 
-    def get_decision_analytics(self) -> DecisionAnalytics:
+    def get_decision_analytics(self, cases: Optional[List[Dict]] = None) -> DecisionAnalytics:
         """Analyzes AI recommendations vs human decision distribution and agreement/disagreement rates."""
-        all_cases = self._get_cases_list()
+        all_cases = cases if cases is not None else self._get_cases_list()
         ai_recs: Dict[str, int] = {"CONTEST": 0, "DO_NOT_CONTEST": 0}
 
         for c in all_cases:
             did = c.get("dispute_id")
             if did:
-                pred = prediction_service.predict_dispute(did)
-                rec = pred.get("recommendation", "CONTEST")
+                rec = c.get("recommendation", "CONTEST")
                 ai_recs[rec] = ai_recs.get(rec, 0) + 1
 
         human_decs: Dict[str, int] = {"CONTEST": 0, "DO_NOT_CONTEST": 0, "ESCALATE": 0}
@@ -236,9 +237,9 @@ class AnalyticsService:
             escalation_rate=escalation_rate
         )
 
-    def get_risk_analytics(self) -> RiskAnalytics:
+    def get_risk_analytics(self, cases: Optional[List[Dict]] = None) -> RiskAnalytics:
         """Computes win probability bucket distribution, dispute reason distribution, and amount brackets."""
-        all_cases = self._get_cases_list()
+        all_cases = cases if cases is not None else self._get_cases_list()
 
         buckets = {
             "0–20%": 0,
@@ -261,8 +262,7 @@ class AnalyticsService:
             if not did:
                 continue
 
-            pred = prediction_service.predict_dispute(did)
-            prob = pred.get("win_probability", 0.0)
+            prob = c.get("win_probability", 0.0)
 
             if prob <= 0.20:
                 buckets["0–20%"] += 1
@@ -298,6 +298,9 @@ class AnalyticsService:
 
     def get_evidence_analytics(self) -> EvidenceAnalytics:
         """Summarizes evidence verification results derived from Phase 5 verifier."""
+        if hasattr(self, "_evidence_cache") and self._evidence_cache is not None:
+            return self._evidence_cache
+
         sample_dispute = "DSP_000001"
         try:
             report = investigation_agent.investigate_case(sample_dispute)
@@ -313,7 +316,7 @@ class AnalyticsService:
             logger.warning(f"Could not compute live evidence verification sample: {e}")
             total, verified, mismatched, unverifiable, v_rate = 5, 5, 0, 0, 1.0
 
-        return EvidenceAnalytics(
+        res = EvidenceAnalytics(
             total_cases_analyzed=1,
             verified_evidence_count=verified,
             mismatched_evidence_count=mismatched,
@@ -322,15 +325,18 @@ class AnalyticsService:
             has_historical_persistence=True,
             note="Live backend evidence verification engine cross-referencing authoritative relational dataset."
         )
+        self._evidence_cache = res
+        return res
 
     def get_overview(self) -> AnalyticsOverviewResponse:
         """Aggregates all analytics categories into a unified overview response."""
         now_iso = datetime.now(timezone.utc).isoformat()
+        cases = self._get_cases_list()
         return AnalyticsOverviewResponse(
-            operational=self.get_operational_metrics(),
-            financial=self.get_financial_analytics(),
-            decisions=self.get_decision_analytics(),
-            risk=self.get_risk_analytics(),
+            operational=self.get_operational_metrics(cases),
+            financial=self.get_financial_analytics(cases),
+            decisions=self.get_decision_analytics(cases),
+            risk=self.get_risk_analytics(cases),
             evidence=self.get_evidence_analytics(),
             health=self.check_health(),
             generated_at=now_iso

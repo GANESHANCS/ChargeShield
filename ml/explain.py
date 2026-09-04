@@ -13,6 +13,7 @@ import shap
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import warnings
 from typing import Dict, List, Any
 
 from ml.config import config
@@ -39,7 +40,9 @@ class DisputeExplainer:
         Returns top positive and negative contributing factors.
         """
         proc_features = self.preprocessor.transform(raw_features_df)
-        shap_vals = self.explainer.shap_values(proc_features)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            shap_vals = self.explainer.shap_values(proc_features)
         
         # Binary classification SHAP values array handling
         if isinstance(shap_vals, list):

@@ -80,10 +80,37 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+const apiCache = new Map<string, { timestamp: number; data: any }>();
+const CACHE_TTL_MS = 10000; // 10s TTL for GET requests
+
+export function clearApiCache() {
+  apiCache.clear();
+}
+
+async function authFetchCached<T>(url: string, init?: RequestInit, ttlMs = CACHE_TTL_MS): Promise<T> {
+  const method = (init?.method || 'GET').toUpperCase();
+  const token = localStorage.getItem('chargeshield_auth_token') || 'anon';
+  const cacheKey = `${token}::${url}`;
+
+  if (method === 'GET') {
+    const cached = apiCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < ttlMs) {
+      return cached.data as T;
+    }
+  }
+  const res = await authFetch(url, init);
+  const data = await handleResponse<T>(res);
+  if (method === 'GET') {
+    apiCache.set(cacheKey, { timestamp: Date.now(), data });
+  }
+  return data;
+}
+
 export const api = {
+  clearCache: clearApiCache,
+
   getHealth: async () => {
-    const res = await authFetch(`${API_BASE_URL}/health`);
-    return handleResponse<{ status: string; environment: string }>(res);
+    return authFetchCached<{ status: string; environment: string }>(`${API_BASE_URL}/health`, undefined, 5000);
   },
 
   getCases: async (page = 1, pageSize = 20, search?: string) => {

@@ -228,16 +228,11 @@ class CaseService:
                 for disp in query.all()
             ]
 
-        case_summaries = []
+        threshold = prediction_service._predictor.optimal_threshold if prediction_service._predictor else 0.29
         for disp in dispute_records:
             disp_id = disp["dispute_id"]
-            txn_id = disp["transaction_id"]
-            amt = float(disp["disputed_amount"])
-            r_code = str(disp["dispute_reason_code"])
-
             try:
                 win_prob = prediction_service._predictor.get_probability_fast(disp_id)
-                threshold = prediction_service._predictor.optimal_threshold if prediction_service._predictor else 0.29
                 if win_prob >= threshold:
                     rec = "CONTEST"
                 elif win_prob >= max(0.20, threshold - 0.20):
@@ -248,6 +243,48 @@ class CaseService:
                 win_prob = 0.50
                 rec = "MANUAL_REVIEW"
 
+            disp["win_probability"] = win_prob
+            disp["recommendation"] = rec
+
+        # Probability range filter
+        filtered_records = dispute_records
+        if min_prob is not None:
+            filtered_records = [c for c in filtered_records if c["win_probability"] >= min_prob]
+        if max_prob is not None:
+            filtered_records = [c for c in filtered_records if c["win_probability"] <= max_prob]
+
+        # Sorting logic
+        if sort_by == "newest":
+            filtered_records.sort(key=lambda x: x["dispute_creation_timestamp"], reverse=True)
+        elif sort_by == "oldest":
+            filtered_records.sort(key=lambda x: x["dispute_creation_timestamp"], reverse=False)
+        elif sort_by == "amount_desc":
+            filtered_records.sort(key=lambda x: x["disputed_amount"], reverse=True)
+        elif sort_by == "amount_asc":
+            filtered_records.sort(key=lambda x: x["disputed_amount"], reverse=False)
+        elif sort_by == "prob_desc":
+            filtered_records.sort(key=lambda x: x["win_probability"], reverse=True)
+        elif sort_by == "prob_asc":
+            filtered_records.sort(key=lambda x: x["win_probability"], reverse=False)
+
+        total = len(filtered_records)
+        page_size = max(1, min(page_size, 100))
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+        page = max(1, min(page, total_pages)) if total > 0 else 1
+
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paged_records = filtered_records[start_idx:end_idx]
+
+        paged_items = []
+        for disp in paged_records:
+            disp_id = disp["dispute_id"]
+            txn_id = disp["transaction_id"]
+            amt = float(disp["disputed_amount"])
+            r_code = str(disp["dispute_reason_code"])
+            win_prob = disp["win_probability"]
+            rec = disp["recommendation"]
+
             financial_impact = financial_engine.calculate_impact(amt, win_prob)
             risk_assessment = risk_engine.assess_risk(
                 dispute_id=disp_id,
@@ -255,10 +292,10 @@ class CaseService:
                 amount=amt,
                 dispute_reason=r_code,
                 win_probability=win_prob,
-                decision_threshold=prediction_service._predictor.optimal_threshold if prediction_service._predictor else 0.29
+                decision_threshold=threshold
             )
 
-            case_summaries.append({
+            paged_items.append({
                 "dispute_id": disp_id,
                 "customer_id": disp["customer_id"],
                 "order_id": disp["order_id"],
@@ -277,35 +314,6 @@ class CaseService:
                 "financial_impact": financial_impact,
                 "risk_classification": risk_assessment
             })
-
-        # Probability range filter
-        if min_prob is not None:
-            case_summaries = [c for c in case_summaries if c["win_probability"] >= min_prob]
-        if max_prob is not None:
-            case_summaries = [c for c in case_summaries if c["win_probability"] <= max_prob]
-
-        # Sorting logic
-        if sort_by == "newest":
-            case_summaries.sort(key=lambda x: x["dispute_creation_timestamp"], reverse=True)
-        elif sort_by == "oldest":
-            case_summaries.sort(key=lambda x: x["dispute_creation_timestamp"], reverse=False)
-        elif sort_by == "amount_desc":
-            case_summaries.sort(key=lambda x: x["disputed_amount"], reverse=True)
-        elif sort_by == "amount_asc":
-            case_summaries.sort(key=lambda x: x["disputed_amount"], reverse=False)
-        elif sort_by == "prob_desc":
-            case_summaries.sort(key=lambda x: x["win_probability"], reverse=True)
-        elif sort_by == "prob_asc":
-            case_summaries.sort(key=lambda x: x["win_probability"], reverse=False)
-
-        total = len(case_summaries)
-        page_size = max(1, min(page_size, 100))
-        total_pages = (total + page_size - 1) // page_size if total > 0 else 1
-        page = max(1, min(page, total_pages)) if total > 0 else 1
-
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
-        paged_items = case_summaries[start_idx:end_idx]
 
         return {
             "items": paged_items,

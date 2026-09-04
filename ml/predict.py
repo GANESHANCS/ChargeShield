@@ -29,14 +29,17 @@ class ChargebackPredictor:
         self.explainer = DisputeExplainer(artifacts_dir=artifacts_dir)
         self._dataset_cache = None
         self._batch_probs_cache = None
+        try:
+            self._get_batch_probs()
+        except Exception:
+            pass
 
     def _get_dataset(self):
         if self._dataset_cache is None:
             self._dataset_cache = load_and_split_dataset(data_dir=self.data_dir)
         return self._dataset_cache
 
-    def get_probability_fast(self, dispute_id: str) -> float:
-        """Fast probability lookup without SHAP tree calculation."""
+    def _get_batch_probs(self) -> Dict[str, float]:
         if self._batch_probs_cache is None:
             data = self._get_dataset()
             cache = {}
@@ -48,12 +51,22 @@ class ChargebackPredictor:
                 for disp_id, prob in zip(meta_df["dispute_id"], probs):
                     cache[disp_id] = round(float(prob), 4)
             self._batch_probs_cache = cache
+        return self._batch_probs_cache
 
-        if dispute_id in self._batch_probs_cache:
-            return self._batch_probs_cache[dispute_id]
+    def get_probability_fast(self, dispute_id: str) -> float:
+        """Fast probability lookup without SHAP tree calculation."""
+        cache = self._get_batch_probs()
+        if dispute_id in cache:
+            return cache[dispute_id]
 
-        pred = self.predict_dispute_by_id(dispute_id, include_shap=False)
-        return pred["win_probability"]
+        try:
+            pred = self.predict_dispute_by_id(dispute_id, include_shap=False)
+            prob = float(pred.get("win_probability", 0.50))
+        except Exception:
+            prob = 0.50
+
+        cache[dispute_id] = prob
+        return prob
 
     def predict_dispute_by_id(self, dispute_id: str, include_shap: bool = True) -> Dict[str, Any]:
         """Looks up a dispute from cached dataset by ID and returns structured prediction."""
@@ -92,7 +105,12 @@ class ChargebackPredictor:
             recommendation = "DO_NOT_CONTEST"
             predicted_class = 0
             
-        explanation = self.explainer.explain_instance(raw_features_df) if include_shap else {}
+        default_exp = {
+            "top_positive_factors": [],
+            "top_negative_factors": [],
+            "all_significant_factors": []
+        }
+        explanation = self.explainer.explain_instance(raw_features_df) if include_shap else default_exp
         
         return {
             "dispute_id": dispute_id,

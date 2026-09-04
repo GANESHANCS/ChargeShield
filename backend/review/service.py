@@ -70,10 +70,8 @@ class ReviewService:
             rev_status_str = states_db.get(disp_id, ReviewStateEnum.PENDING_REVIEW.value)
             rev_status = ReviewStateEnum(rev_status_str)
             
-            # Predict win probability
-            pred = prediction_service.predict_dispute(disp_id)
-            win_prob = pred["win_probability"]
-            rec_action = pred["recommendation"]
+            win_prob = case_sum["win_probability"]
+            rec_action = case_sum["recommendation"]
             amt = case_sum["disputed_amount"]
 
             # Calculate priority score
@@ -185,8 +183,8 @@ class ReviewService:
                 for d in dec_recs
             ]
 
-        # Fetch predictions, investigation, and verification
-        pred_dict = prediction_service.predict_dispute(dispute_id)
+        # Fetch predictions (with SHAP explanations), investigation, and verification
+        pred_dict = prediction_service.predict_dispute(dispute_id, include_shap=True)
         report = investigation_agent.investigate_case(dispute_id)
         verification_resp = evidence_verifier.verify_investigation(dispute_id, report)
 

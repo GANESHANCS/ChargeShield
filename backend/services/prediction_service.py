@@ -21,7 +21,7 @@ class PredictionService:
             cls._predictor = ChargebackPredictor()
         return cls._instance
 
-    def predict_dispute(self, dispute_id: str) -> Dict[str, Any]:
+    def predict_dispute(self, dispute_id: str, include_shap: bool = False) -> Dict[str, Any]:
         """Runs ML prediction on a given dispute ID using loaded model artifact or simulation metadata."""
         if dispute_id.startswith("DSP_SIM_"):
             # Safe fallback prediction for simulated cases without circular lookup
@@ -40,17 +40,17 @@ class PredictionService:
                     "all_significant_factors": []
                 }
             }
-        return self._predictor.predict_dispute_by_id(dispute_id)
+        return self._predictor.predict_dispute_by_id(dispute_id, include_shap=include_shap)
 
     def explain_dispute(self, dispute_id: str) -> Dict[str, Any]:
         """Extracts SHAP explanation attributions for a given dispute ID."""
-        pred = self.predict_dispute(dispute_id)
+        pred = self.predict_dispute(dispute_id, include_shap=True)
         return {
             "dispute_id": dispute_id,
             "model_version": pred["model_version"],
-            "top_positive_factors": pred["explanation"]["top_positive_factors"],
-            "top_negative_factors": pred["explanation"]["top_negative_factors"],
-            "all_significant_factors": pred["explanation"]["all_significant_factors"]
+            "top_positive_factors": pred["explanation"].get("top_positive_factors", []),
+            "top_negative_factors": pred["explanation"].get("top_negative_factors", []),
+            "all_significant_factors": pred["explanation"].get("all_significant_factors", [])
         }
 
 prediction_service = PredictionService()

@@ -37,15 +37,22 @@ export const NavigationRail: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
-    { label: '01 RISK_OVERVIEW', path: '/dashboard' },
-    { label: '02 REVIEW_QUEUE', path: '/queue' },
-    { label: '03 CASES', path: '/cases/DSP_000001' },
-    { label: '04 MODEL', path: '/model' },
-    { label: '05 ANALYTICS', path: '/analytics' },
-    { label: '06 AUDIT', path: '/audit' },
-    { label: '07 SIMULATION', path: '/simulation' },
+  const allNavItems = [
+    { label: '01 RISK_OVERVIEW', path: '/dashboard', accent: '#00F0FF', allowedRoles: ['ADMIN', 'ANALYST', 'REVIEWER', 'AUDITOR'] },
+    { label: '02 REVIEW_QUEUE', path: '/queue', accent: '#F4C46B', allowedRoles: ['ADMIN', 'ANALYST', 'REVIEWER'] },
+    { label: '03 CASES', path: '/cases/DSP_000001', accent: '#00E5FF', allowedRoles: ['ADMIN', 'ANALYST', 'REVIEWER', 'AUDITOR'] },
+    { label: '04 MODEL', path: '/model', accent: '#A78BFA', allowedRoles: ['ADMIN', 'ANALYST'] },
+    { label: '05 ANALYTICS', path: '/analytics', accent: '#00F5D4', allowedRoles: ['ADMIN', 'ANALYST', 'AUDITOR'] },
+    { label: '06 AUDIT', path: '/audit', accent: '#CBD5E1', allowedRoles: ['ADMIN', 'ANALYST', 'REVIEWER', 'AUDITOR'] },
+    { label: '07 SIMULATION', path: '/simulation', accent: '#E879F9', allowedRoles: ['ADMIN', 'ANALYST'] },
   ];
+
+  // Role-Aware Navigation Filtering
+  const userRole = user?.role?.toUpperCase() || 'REVIEWER';
+  const navItems = allNavItems.filter((item) => {
+    if (userRole === 'ADMIN') return true;
+    return item.allowedRoles.includes(userRole);
+  });
 
   const handleNavClick = (path: string) => {
     setMobileMenuOpen(false);
@@ -86,14 +93,16 @@ export const NavigationRail: React.FC = () => {
                   key={item.label}
                   onClick={() => handleNavClick(item.path)}
                   className={`transition-colors uppercase tracking-widest text-[11px] font-mono relative py-1 ${
-                    isActive ? 'text-[#AFDDFF] font-bold' : 'text-white/60 hover:text-white'
+                    isActive ? 'font-bold' : 'text-white/60 hover:text-white'
                   }`}
+                  style={{ color: isActive ? item.accent : undefined }}
                 >
                   {item.label}
                   {isActive && (
                     <motion.div
                       layoutId="activeNavIndicator"
-                      className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#AFDDFF]"
+                      className="absolute bottom-0 left-0 right-0 h-[1.5px]"
+                      style={{ backgroundColor: item.accent }}
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}

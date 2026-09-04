@@ -67,8 +67,8 @@ class MaxUploadSizeMiddleware(BaseHTTPMiddleware):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Lightweight in-memory rate limiter protecting sensitive operational endpoints."""
     async def dispatch(self, request: Request, call_next):
-        # Exempt pytest testclient requests from rate limits
-        if request.client and request.client.host in ["testclient", "localhost"]:
+        # Exempt pytest testclient and local dev requests from rate limits
+        if request.client and request.client.host in ["testclient", "localhost", "127.0.0.1"]:
             return await call_next(request)
 
         path = request.url.path
