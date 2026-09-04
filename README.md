@@ -16,9 +16,8 @@ ChargeShield is an end-to-end chargeback triage, ML-driven risk evaluation, and 
 
 ## 1. Visual Preview
 
-> [!NOTE]
-> **TODO: UI Screenshots & Walkthrough Demonstrations**  
-> High-resolution interface screenshots and animated visual walkthroughs will be added in a future update. To preview the live application user interface, start the local development server following the Quickstart instructions below.
+![Risk Overview](docs/screenshots/01-risk-overview.png)
+*Risk Overview — Live chargeback exposure triage and risk prioritization.*
 
 ---
 
@@ -141,7 +140,27 @@ graph TD
 
 ---
 
-## 7. Human-in-the-Loop & Role-Based Access Control (RBAC)
+## 7. Platform Interface Walkthrough
+
+### Case Investigation
+![Case Investigation](docs/screenshots/02-case-investigation.png)
+*Case Investigation — Case-level financial reasoning, ML assessment, and evidence verification.*
+
+### Model Intelligence
+![Model Intelligence](docs/screenshots/03-model-intelligence.png)
+*Model Intelligence — LightGBM governance, calibration, threshold optimization, and outcome feedback.*
+
+### Operational Intelligence
+![Operational Intelligence](docs/screenshots/04-operational-intelligence.png)
+*Operational Intelligence — Operational health, financial recovery analytics, and decision monitoring.*
+
+### Decision Simulation
+![Decision Simulation](docs/screenshots/05-decision-simulation.png)
+*Decision Simulation — Isolated scenario testing with production-contamination safeguards.*
+
+---
+
+## 8. Human-in-the-Loop & Role-Based Access Control (RBAC)
 
 ChargeShield enforces strict server-side permission boundaries using FastAPI dependency injection (`require_role`):
 
@@ -154,7 +173,7 @@ ChargeShield enforces strict server-side permission boundaries using FastAPI dep
 
 ---
 
-## 8. Machine Learning & Decision Science
+## 9. Machine Learning & Decision Science
 
 ### Win-Probability Model (LightGBM)
 - **Classifier Architecture**: Gradient boosted decision tree (`LightGBMClassifier`) trained on tabular transaction, customer behavioral, and velocity features.
@@ -171,7 +190,7 @@ ChargeShield enforces strict server-side permission boundaries using FastAPI dep
 
 ---
 
-## 9. Case Investigation Workflow
+## 10. Case Investigation Workflow
 
 1. **Dispute Ingestion**: Webhooks or batch jobs ingest dispute records, populating relational Customer, Order, Transaction, and Dispute models.
 2. **Predictive Scoring**: LightGBM model calculates win probability and determines advisory recommendation (`CONTEST` vs `DO_NOT_CONTEST`).
@@ -182,7 +201,7 @@ ChargeShield enforces strict server-side permission boundaries using FastAPI dep
 
 ---
 
-## 10. Evidence Management & Representment Package
+## 11. Evidence Management & Representment Package
 
 ### SHA-256 Storage Repository
 Physical evidence documents uploaded through the UI undergo:
@@ -201,7 +220,7 @@ Using ReportLab, ChargeShield generates downloadable evidence packages (`GET /ap
 
 ---
 
-## 11. REST API Reference Overview
+## 12. REST API Reference Overview
 
 The FastAPI backend exposes structured endpoints under `/api/v1`:
 
@@ -219,7 +238,7 @@ The FastAPI backend exposes structured endpoints under `/api/v1`:
 
 ---
 
-## 12. Security & Safeguards
+## 13. Security & Safeguards
 
 - **JWT Authentication**: Signed JWT tokens with expiration enforcement.
 - **Server-Side RBAC**: Route dependency verification (`require_role`) preventing unauthorized state modifications.
@@ -230,7 +249,7 @@ The FastAPI backend exposes structured endpoints under `/api/v1`:
 
 ---
 
-## 13. Isolated Simulation Engine (`[SIMULATION]`)
+## 14. Isolated Simulation Engine (`[SIMULATION]`)
 
 ChargeShield includes a dedicated simulation engine (`/simulation`) for operational testing:
 - **Scenario Profiles**: Inject predefined vectors like `HIGH_RISK_CHARGEBACK`, `FRIENDLY_FRAUD`, or `LOW_AMOUNT_RECURRING`.
@@ -239,7 +258,7 @@ ChargeShield includes a dedicated simulation engine (`/simulation`) for operatio
 
 ---
 
-## 14. Verification & Testing
+## 15. Verification & Testing
 
 ChargeShield includes a comprehensive automated test suite built with Pytest:
 
@@ -257,7 +276,7 @@ npm run build
 
 ---
 
-## 15. Local Quickstart Guide
+## 16. Local Quickstart Guide
 
 ### Prerequisites
 - Python 3.10+
@@ -321,7 +340,7 @@ docker-compose up --build
 
 ---
 
-## 16. Repository Project Structure
+## 17. Repository Project Structure
 
 ```
 ChargeShield/
@@ -346,6 +365,7 @@ ChargeShield/
 ├── data/                     # Reproducible synthetic dataset generator
 ├── alembic/                  # Database migration scripts
 ├── docs/                     # Technical architecture documentation
+│   └── screenshots/          # High-resolution platform interface screenshots
 ├── tests/                    # Pytest test suite (194 passing tests)
 ├── Dockerfile                # Multi-stage production container build
 ├── docker-compose.yml        # Docker Compose service orchestration
@@ -355,7 +375,7 @@ ChargeShield/
 
 ---
 
-## 17. System Limitations & Transparency
+## 18. System Limitations & Transparency
 
 - **Synthetic Relational Dataset**: All data is generated synthetically using reproducible random seeds; ChargeShield is not connected to live card network or merchant financial production streams.
 - **Advisory AI Boundaries**: Models and agent systems generate advisory predictions and evidence packages; financial settlement or contestation submission is never automated.
@@ -364,7 +384,7 @@ ChargeShield/
 
 ---
 
-## 18. Engineering Roadmap
+## 19. Engineering Roadmap
 
 - [ ] **Automated Continuous Re-calibration**: Automated drift detection and periodic probability calibration updates upon new ground-truth outcome labeling.
 - [ ] **Multi-Tenant Merchant Isolation**: Schema-level multi-tenancy for payment aggregators managing multi-merchant portfolios.
@@ -372,6 +392,6 @@ ChargeShield/
 
 ---
 
-## 19. License
+## 20. License
 
 This project is licensed under the MIT License — see the `LICENSE` file for details.
