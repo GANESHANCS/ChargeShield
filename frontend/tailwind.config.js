@@ -11,6 +11,13 @@ export default {
         display: ['Space Grotesk', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      fontSize: {
+        '2xs': ['0.75rem', { lineHeight: '1.15rem' }],
+        'xs': ['0.84375rem', { lineHeight: '1.35rem' }],
+        'sm': ['0.9375rem', { lineHeight: '1.45rem' }],
+        'base': ['1rem', { lineHeight: '1.55rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+      },
       colors: {
         ice: {
           500: '#AFDDFF',
@@ -28,8 +35,8 @@ export default {
           card: 'rgba(255, 255, 255, 0.025)',
           border: 'rgba(255, 255, 255, 0.12)',
           grid: 'rgba(255, 255, 255, 0.04)',
-          muted: 'rgba(255, 255, 255, 0.50)',
-          secondary: 'rgba(255, 255, 255, 0.65)',
+          muted: 'rgba(255, 255, 255, 0.60)',
+          secondary: 'rgba(255, 255, 255, 0.75)',
           accent: '#AFDDFF',
           silver: '#C0C7D0',
           mutedBlue: '#6B8CAE',
