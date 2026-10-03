@@ -35,6 +35,10 @@ jobs:
         run: |
           python -m alembic upgrade head
 
+      - name: Generate Synthetic Relational Dataset
+        run: |
+          python -c "from data.generator import SyntheticDataGenerator; SyntheticDataGenerator(seed=42).generate_dataset(num_customers=2500, dispute_rate=0.08, output_dir='data/generated')"
+
       - name: Execute Automated Test Suite (194 Tests)
         run: |
           python -m pytest -v
